@@ -4,7 +4,7 @@ fork    := true
 cancelable in Global := true
 scalaVersion := "2.11.7"
 
-enablePlugins(JavaAppPackaging)
+// enablePlugins(JavaAppPackaging)
 // javaOptions += "-Dsmack.debugEnabled=true v2d2"
 val akkaVersion = "2.4.4" // "2.4.2-RC2"
 val sprayVersion = "1.3.2"
