@@ -96,112 +96,15 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
       })
       res onComplete {
         case Success(result) =>
-          // context.parent ! s"Love has been sent to ${love.receiver}"
           self ! LoveSuccess(loves.sender, loves.receivers, loves.reason)
         case Failure(t) =>
           context.parent ! "An error has occured: " + t.getMessage
           context.parent ! "My favorite subreddit is http://reddit.com/r/lolphp"
       }
 
-      // val boo:Future[Seq[RequestEntity]] = 
-      //   Future {
-      //     loves.receiverNicks map { n =>
-      //       Marshal(FormData(
-      //         "action"  -> "sendlovemsg",
-      //         "caller"  -> "hippybot",
-      //         "api_key" -> V2D2.sendLove("api_key"),
-      //         "from"    -> loves.senderNick,
-      //         "to"      -> n,
-      //         "why" -> loves.reason, "priv" -> "0")).to[RequestEntity]
-      //     }
-      //   } 
-      // val req = for { r <- 
-      //   Future {
-      //     loves.receiverNicks map { n =>
-      //       Marshal(FormData(
-      //         "action"  -> "sendlovemsg",
-      //         "caller"  -> "hippybot",
-      //         "api_key" -> V2D2.sendLove("api_key"),
-      //         "from"    -> loves.senderNick,
-      //         "to"      -> n,
-      //         "why" -> loves.reason, "priv" -> "0")).to[RequestEntity]
-      //     }
-      //   } 
-      // } yield(r)
-      // req onComplete {
-      //   case Success(datas) =>
-      //     val res = datas flatMap { d =>
-      //       Http().singleRequest(
-      //         HttpRequest(
-      //           uri = V2D2.sendLove("url"),
-      //           method = HttpMethods.POST, entity = d)
-      //       ).flatMap { response =>
-      //         val fixed = response.mapEntity(
-      //           _.withContentType(ContentTypes.`application/json`))
-      //         Unmarshal(fixed).to[SendLoveResult]
-      //       } 
-      //     }
-      //   case Failure(_) =>
-      //     log.warn("failure in creating love form data")
-      // }
-        // case Failure(_) =>
-        //   log.warn("failure in creating love form data")
-        //
-        //     onComplete {
-        //       case Success(result) =>
-        //         // context.parent ! s"Love has been sent to ${love.receiver}"
-        //         self ! LoveSuccess(love.sender, love.receiver, reason)
-        //       case Failure(t) =>
-        //         context.parent ! "An error has occured: " + t.getMessage
-        //         context.parent ! "My favorite subreddit is http://reddit.com/r/lolphp"
-        //     }
- 
-
-      // val datas = for ( n <- loves.receiverNicks ) {
-     // println(s"the ${datas}")
-      // Http().singleRequest(
-      //   HttpRequest(
-      //     uri = V2D2.sendLove("url"),
-      //     method = HttpMethods.POST, entity = data)
-      // ).flatMap { response =>
-      //   val fixed = response.mapEntity(
-      //     _.withContentType(ContentTypes.`application/json`))
-      //   Unmarshal(fixed).to[SendLoveResult]
-      // } onComplete {
-      //   case Success(result) =>
-      //     // context.parent ! s"Love has been sent to ${love.receiver}"
-      //     self ! LoveSuccess(love.sender, love.receiver, reason)
-      //   case Failure(t) =>
-      //     context.parent ! "An error has occured: " + t.getMessage
-      //     context.parent ! "My favorite subreddit is http://reddit.com/r/lolphp"
-      // }
-
-
-    // case love: SendLove =>
-    //   val data: RequestEntity = Await.result(
-    //     Marshal(FormData(
-    //       "action"  -> "sendlovemsg",
-    //       "caller"  -> "hippybot",
-    //       "api_key" -> V2D2.sendLove("api_key"),
-    //       "from"    -> love.sender,
-    //       "to"      -> love.receiver,
-    //       "why" -> love.reason, "priv" -> "0")).to[RequestEntity], 1.second)
-    //   Http().singleRequest(
-    //     HttpRequest(
-    //       uri = V2D2.sendLove("url"),
-    //       method = HttpMethods.POST, entity = data)
-    //   ).flatMap { response =>
-    //     val fixed = response.mapEntity(
-    //       _.withContentType(ContentTypes.`application/json`))
-    //     Unmarshal(fixed).to[SendLoveResult]
-    //   } onComplete {
-    //     case Success(result) =>
-    //       // context.parent ! s"Love has been sent to ${love.receiver}"
-    //       self ! LoveSuccess(love.sender, love.receiver, reason)
-    //     case Failure(t) =>
-    //       context.parent ! "An error has occured: " + t.getMessage
-    //       context.parent ! "My favorite subreddit is http://reddit.com/r/lolphp"
-    //   }
+    case success:LoveSuccess =>
+      val nicks = success.receivers map { u => s"@${u.nick}" } mkString(" ")
+      context.parent ! s"Love was sent to ${nicks}\n  - ${success.reason}"
 
     case imsg: IMessage =>
       val occupant = muc.getOccupant(imsg.fromRaw)
@@ -230,6 +133,8 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
                             Nil
                         }
                       }
+                      self ! SendUsersLove(sender, users, love.reason)
+                    case _ =>
                       context.parent ! s"..sigh humans."
                   }
               }
