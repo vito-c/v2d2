@@ -20,8 +20,28 @@ object Nailed extends AutoParser[Nailed]
 case class Quit(imsg: Option[IMessage])
 object Quit extends AutoParser[Quit]
 
-case class SendLove(sender: String, receiver: String, reason: String)
-case class SendUserLove(sender: User, receiver: User, reason: Option[String])
+//just going to parse the reason again.
+case class LoveSuccess(
+  sender: User,
+  receivers: Seq[User],
+  reason: String)
+case class SendUsersLove(
+  sender: User, receivers: Seq[User], reason: Option[String])
+case class SendLoves(
+  sender: User,
+  receivers: Seq[User],
+  senderNick: String,
+  receiverNicks: Seq[String],
+  reason: String)
+
+// case class SendLove(
+//   sender: User,
+//   receiver: User,
+//   senderNick: String,
+//   receiverNick: String,
+//   reason: String)
+// case class SendUserLove(sender: User, receiver: User, reason: Option[String])
+
 case class SendLoveResult(status: String, error: String, info: String)
 case class LoveNickResult(success: Boolean, nickname: String)
 
