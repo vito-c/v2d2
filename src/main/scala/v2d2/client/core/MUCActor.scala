@@ -1,5 +1,6 @@
 package v2d2.client.core
 
+import scala.collection.immutable.Queue
 import akka.actor.{Actor, ActorContext, Props, ActorLogging}
 import v2d2.actions.knock.Knocker
 import org.jivesoftware.smack.StanzaListener
@@ -34,6 +35,7 @@ import v2d2.actions.generic._
 
 class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor with ActorLogging {
 
+  // non breaking space: \u2002
   override def preStart = {
     val history = new DiscussionHistory()
     history.setMaxChars(0) // Don't get anything when joining
@@ -42,28 +44,29 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
     muc.addParticipantListener(new PresenceListener() {
       def processPresence(presence: Presence) = {
         log.info(s"presence has changed in chat")
-        V2D2.makeDirty()
+        context.actorSelection("/user/xmpp") ! MakeRosterDirty()
       }
     })
-    context.actorOf(Props(classOf[Quitter]), name = "quit" + muc.getRoom() )
-    context.actorOf(Props(classOf[NailedIt]), name = "nailed" + muc.getRoom() )
-    context.actorOf(Props(classOf[Help]), name = "help" + muc.getRoom() )
+    context.actorOf(Props(classOf[Quitter]), name = "quit")// + muc.getRoom() )
+    context.actorOf(Props(classOf[NailedIt]), name = "nailed")// + muc.getRoom() )
+    context.actorOf(Props(classOf[Help]), name = "help")// + muc.getRoom() )
     // context.actorOf(Props(classOf[GetProfile]), name = "getprofile" + muc.getRoom() )
-    context.actorOf(Props(classOf[Knocker], muc), name = "knocker" + muc.getRoom() )
-    context.actorOf(Props(classOf[Lover], muc), name = "lover" + muc.getRoom() )
+    context.actorOf(Props(classOf[Knocker], muc), name = "knocker")// + muc.getRoom() )
+    context.actorOf(Props(classOf[Lover], muc), name = "lover")// + muc.getRoom() )
+    // context.actorOf(Props(classOf[History], muc), name = "history")// + muc.getRoom() )
 
     muc.addMessageListener(new MessageListener() {
       def processMessage(msg: Message) = {
         val sender = XmppStringUtils.parseResource(msg.getFrom())
         if (sender != V2D2.display) {
           val imsg:IMessage = new XMessage(msg)
-          log.info(s"process msg" +
-            s"\n\tsender: ${msg.getFrom()}" +
-            s"\n\tcontent: ${msg.getBody()}" +
-            s"\n\txml: ${msg.toXML()}" +
-            s"\n\tdisplay: ${V2D2.display}")
-          log.info(s"msg: ${imsg}")
-          log.info(s"content: ${imsg.content}")
+          // log.info(s"process msg" +
+          //   s"\n\tsender: ${msg.getFrom()}" +
+          //   s"\n\tcontent: ${msg.getBody()}" +
+          //   s"\n\txml: ${msg.toXML()}" +
+          //   s"\n\tdisplay: ${V2D2.display}")
+          // log.info(s"msg: ${imsg}")
+          // log.info(s"content: ${imsg.content}")
 
           if(imsg != null && imsg.content != null)
             self ! Relay(imsg)
@@ -78,11 +81,20 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
     muc.leave()
   }
 
+  private var _history: Queue[IMessage] = Queue[IMessage]()
+  private val _maxHist: Int = 200
 
   def receive: Receive = {
+
     case Relay(imsg) =>
+      val occupant = muc.getOccupant(imsg.fromRaw)
+      val fJid = XmppStringUtils.parseBareJid(occupant.getJid())
       if(imsg == null || imsg.content == null || imsg.content == "") None
       else context.children foreach { child => child ! imsg }
+      if(fJid != V2D2.v2d2Jid)
+        _history = _history.enqueue(imsg)
+      if(_history.length > _maxHist) 
+        _history = _history.dequeue._2
 
     case ProfileReq(target) =>
       // val peeps = muc.getOccupants().asScala.toList

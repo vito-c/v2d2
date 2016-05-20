@@ -8,9 +8,11 @@ import scala.reflect.runtime.{universe=>ru}
 import reflect.runtime.universe.Type
 import v2d2.client.IMessage
 import fastparse.all._
+import fastparse.core.Parsed
+import scala.language.implicitConversions
 
 object MyExtensions {
-  import fastparse.all._
+  // import fastparse.all._
   implicit def richStr(str: String) = new {
     val ws:P[Unit] = P(" ".rep)
     val bot:P[Unit] = P(("bot" | "v2d2") ~ ",".?)
@@ -24,7 +26,7 @@ object MyExtensions {
         case (cmd, msg) => cons(Some(msg))
       }
       output.parse(str) match{
-        case Parsed.Success(value, _) => Some(value)
+        case fastparse.core.Parsed.Success(value, _) => Some(value)
         case _ => None
       }
     }
@@ -44,7 +46,7 @@ class ManualParser[T: ClassTag](name: String, cons: (Option[String]) => T) {
       case (cmd, msg) => cons(Some(msg))
     }
     output.parse(str) match{
-      case Parsed.Success(value, _) => Some(value)
+      case fastparse.core.Parsed.Success(value, _) => Some(value)
       case _ => None
     }
   }
@@ -56,7 +58,7 @@ class AutoParser[T: ClassTag] {
   val bot:P[Unit] = P(("bot" | "v2d2" | "!") ~ ",".?)
   val cmd:P[Unit] = P(classTag[T].runtimeClass.getSimpleName.toLowerCase)
   val msg:P[Unit] = P((CharIn('a' to 'z').rep(1) ~ ws.?).rep)
-  val fwd:P[(String,String)] = P(bot ~ ws ~ cmd.! ~ ws  ~ "-".? ~ ws ~ msg.?.!)
+  val fwd:P[(String,String)] = P(bot.? ~ ws ~ cmd.! ~ ws  ~ "-".? ~ ws ~ msg.?.!)
   val bwk:P[(String,String)] = P(cmd.! ~ ws ~ bot ~ ws  ~ "-".? ~ ws ~ msg.?.!)
 
   def apply(imsg:IMessage): Option[T] = {
@@ -69,14 +71,14 @@ class AutoParser[T: ClassTag] {
         val typeInfo: Type = mirror.classSymbol(classTag[T].runtimeClass).toType
         val cs = typeInfo.typeSymbol.asClass // classSymbol
         val cm = mirror.reflectClass(cs) // class mirror
-        val ctor = typeInfo.declaration(ru.nme.CONSTRUCTOR).asMethod // constructor
+        // val ctor = typeInfo.declaration(ru.nme.CONSTRUCTOR).asMethod // constructor
+        val ctor = typeInfo.decl(ru.termNames.CONSTRUCTOR).asMethod // constructor
         val ctorm = cm.reflectConstructor(ctor) // look up constructor in mirror
         ctorm(Some(msg)).asInstanceOf[T]
     }
     output.parse(str) match{
-      case Parsed.Success(value, _) => Some(value)
+      case fastparse.core.Parsed.Success(value, _) => Some(value)
       case _ => None
     }
   }
 }
-

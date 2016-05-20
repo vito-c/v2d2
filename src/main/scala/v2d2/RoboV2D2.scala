@@ -1,7 +1,6 @@
 package v2d2
 
 import akka.actor.{ActorRef, Actor, ActorSystem, ActorContext, Props, ActorLogging}
-
 import akka.japi.Util.immutableSeq
 import akka.pattern.ask
 import akka.util.Timeout
@@ -22,6 +21,7 @@ import org.apache.log4j.PatternLayout
 import org.jivesoftware.smack.ConnectionConfiguration
 import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode
 import org.jivesoftware.smack._
+import org.jivesoftware.smack.packet.Presence
 import org.jivesoftware.smack.packet.Stanza
 import org.jivesoftware.smack.provider.ProviderManager
 import org.jivesoftware.smack.roster.{RosterListener,Roster,RosterEntry,RosterLoadedListener}
@@ -36,16 +36,11 @@ import reflect.runtime.universe.Type
 import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.concurrent.duration._
-// import scala.reflect.ClassTag
-// import scala.reflect._
-// import scala.reflect.runtime.{universe=>ru}
+import scala.concurrent.duration._
 import scala.util.control.NonFatal
-// import scala.util.matching._
 import scala.util.{Success, Failure}
 import v2d2.client.core.{XMPPActor, JoinRoom}
 import v2d2.client.{Profile,ProfileProvider,ProfileIQ,User}
-import org.jivesoftware.smack.packet.Presence
-import scala.concurrent.duration._
 
 case class UserUseless(msg: String) extends Exception(msg)
 
@@ -57,7 +52,7 @@ object V2D2 extends App with LoggerConfig {
   val system   = ActorSystem("system")
   log.info("system booting up")
 
-  implicit val timeout = Timeout(25 seconds)
+  implicit val timeout = Timeout(5.seconds)
 
   val vitoJid = "17702_2444182@chat.hipchat.com" // vito's jid
   val v2d2Jid = "17702_2503775@chat.hipchat.com"
@@ -85,6 +80,7 @@ object V2D2 extends App with LoggerConfig {
   log.info("xmpptcp connection built")
 
   try {
+    // _connection.setPacketReplyTimeout(0000)
     _connection.connect()
     log.info("xmpptcp connection established")
     _connection.login(uid, password)

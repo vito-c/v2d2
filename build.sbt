@@ -9,6 +9,8 @@ scalaVersion := "2.11.7"
 val akkaVersion = "2.4.4" // "2.4.2-RC2"
 val sprayVersion = "1.3.2"
 val scalaTestVersion = "2.2.6"
+// scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
+
 // scalacOptions ++= Seq("-unchecked", "-deprecation")
 // Need to import typesafe better
 libraryDependencies ++= Seq(

@@ -8,6 +8,7 @@ import v2d2.client.{IMessage,User}
 import spray.json._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+
 case class Relay(imsg: IMessage)
 case class ProfileReq(target: String)
 
@@ -24,23 +25,20 @@ object Quit extends AutoParser[Quit]
 case class LoveSuccess(
   sender: User,
   receivers: Seq[User],
-  reason: String)
+  reason: String,
+  imsg: IMessage)
 case class SendUsersLove(
-  sender: User, receivers: Seq[User], reason: Option[String])
+  sender: User, 
+  receivers: Seq[User], 
+  reason: Option[String], 
+  imsg: IMessage)
 case class SendLoves(
   sender: User,
   receivers: Seq[User],
   senderNick: String,
   receiverNicks: Seq[String],
-  reason: String)
-
-// case class SendLove(
-//   sender: User,
-//   receiver: User,
-//   senderNick: String,
-//   receiverNick: String,
-//   reason: String)
-// case class SendUserLove(sender: User, receiver: User, reason: Option[String])
+  reason: String,
+  imsg: IMessage)
 
 case class SendLoveResult(status: String, error: String, info: String)
 case class LoveNickResult(success: Boolean, nickname: String)
@@ -69,15 +67,11 @@ object Love extends BotCombinators {
   def apply(str: String): Option[Love] = {
     val res1 = opt1.parse(str) match {
       case Parsed.Success(value, _) => Some(Love(value._2, value._1))
-      case _ =>
-        println(opt1.parse(str))
-        None
+      case _ => None
     }
     val res2 = opt2.parse(str) match {
       case Parsed.Success(value, _) => Some(Love(value._1, value._2))
-      case _ =>
-        println(opt2.parse(str))
-        None
+      case _ => None
     }
     if (res1 != None) res1
     else if (res2 != None) res2

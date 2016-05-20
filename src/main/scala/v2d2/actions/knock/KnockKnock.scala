@@ -138,8 +138,7 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
 
       if (KnockKnock(imsg) == None && 
           Who(imsg) == None && 
-          Whois(imsg) == None && 
-          Some(fromJid) != None) {
+          Whois(imsg) == None) {
         val jid = fromJid
         V2D2.jidMap onSuccess {
           case jmap =>

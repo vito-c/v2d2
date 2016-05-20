@@ -4,7 +4,6 @@ import akka.actor.{ActorRef, Actor, ActorSystem, ActorContext, Props, ActorLoggi
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.pattern.{ask, pipe}
 import akka.stream.ActorMaterializer
@@ -28,13 +27,14 @@ import v2d2.actions.generic.protocol.LoveJsonProtocol
 import v2d2.actions.generic.protocol.LoveJsonProtocol2._
 import v2d2.actions.generic.protocol._
 import v2d2.client.{IMessage,User}
+import v2d2.client.core._
 
 class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonProtocol {
 
   import system.dispatcher
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
-  implicit val timeout = Timeout(25 seconds)
+  implicit val timeout = Timeout(25.seconds)
 
   // Unmarshal(formdata).to[...] flatMap { data => Http.singleRequest(...)
   def receive: Receive = {
@@ -54,7 +54,7 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
       } pipeTo sender
 
     case love: SendUsersLove =>
-      val users = for {
+      val request = for {
         sender <- (self ? love.sender).mapTo[LoveNickResult]
         takers <- Future.sequence(love.receivers map { u => (self ? u).mapTo[LoveNickResult] })
       } yield(
@@ -63,8 +63,9 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
           love.receivers,
           sender.nickname,
           takers map { n => n.nickname },
-          love.reason.getOrElse("something random")))
-      users onComplete {
+          love.reason.getOrElse("something random"),
+          love.imsg))
+      request onComplete {
         case Success(sendLoves) => self ! sendLoves
         case Failure(t) =>
           context.parent ! "An error has occured: " + t.getMessage
@@ -82,7 +83,7 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
             "to"      -> n,
             "why" -> loves.reason, "priv" -> "0")).to[RequestEntity], 1.second)
       }
-      val res: Future[Seq[SendLoveResult]] = Future.sequence( 
+      val request: Future[Seq[SendLoveResult]] = Future.sequence( 
       datas map { d => 
         Http().singleRequest(
           HttpRequest(
@@ -94,15 +95,15 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
           Unmarshal(fixed).to[SendLoveResult]
         }
       })
-      res onComplete {
+      request onComplete {
         case Success(result) =>
-          self ! LoveSuccess(loves.sender, loves.receivers, loves.reason)
+          self ! LoveSuccess(loves.sender, loves.receivers, loves.reason, loves.imsg)
         case Failure(t) =>
           context.parent ! "An error has occured: " + t.getMessage
           context.parent ! "My favorite subreddit is http://reddit.com/r/lolphp"
       }
 
-    case success:LoveSuccess =>
+    case success: LoveSuccess =>
       val nicks = success.receivers map { u => s"@${u.nick}" } mkString(" ")
       context.parent ! s"Love was sent to ${nicks}\n  - ${success.reason}"
 
@@ -111,34 +112,38 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
       val fJid = XmppStringUtils.parseBareJid(occupant.getJid())
       Love(imsg) match {
         case Some(love) =>
-          V2D2.nickMap onSuccess {
-            case nmap =>
-              V2D2.jidMap onSuccess {
-                case jmap =>
-                  jmap get (fJid) match {
-                    case Some(user) =>
-                      val sender = user
-                      val users  = love.targets flatMap { target =>
-                        nmap get (target.trim) match {
-                          case Some(user) if user.jid == V2D2.v2d2Jid =>
-                            //snappy comeback plus send love
-                            if (love.targets.length == 1) context.parent ! s"@${sender.nick} umm this is awkward... I am incapable of expressing emotions"
-                            Nil
-                          case Some(user) if user.jid == sender.jid =>
-                            if (love.targets.length == 1) context.parent ! s"@${sender.nick} great job you REALLY broke my programming"
-                            Nil
-                          case Some(user) => List(user)
-                          case _ =>
-                            context.parent ! s"Nice try silly human."
-                            Nil
-                        }
+          log.info("request love")
+          val req = for {
+            nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
+            jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
+          } yield(
+            jmap get (fJid) match {
+              case Some(user) =>
+                val sender = user
+                log.info("sending love!!")
+                val users  = love.targets flatMap { target =>
+                  nmap get (target.trim) match {
+                    case Some(user) if user.jid == V2D2.v2d2Jid =>
+                      //snappy comeback plus send love
+                      if (love.targets.length == 1) context.parent ! s"@${sender.nick} umm this is awkward... I am incapable of expressing emotions"
+                      Nil
+                    case Some(user) if user.jid == sender.jid =>
+                      if (love.targets.length == 1) {
+                        context.parent ! s"@${sender.nick} great job you REALLY broke my programming"
                       }
-                      self ! SendUsersLove(sender, users, love.reason)
+                      Nil
+                    case Some(user) => 
+                      log.info(s"get target ${user}")
+                      List(user)
                     case _ =>
-                      context.parent ! s"..sigh humans."
+                      context.parent ! s"Nice try silly human."
+                      Nil
                   }
-              }
-          }
+                }
+                self ! SendUsersLove(sender, users, love.reason, imsg)
+              case _ =>
+                context.parent ! s"..sigh humans."
+          })
         case _ => None
       }
   }
