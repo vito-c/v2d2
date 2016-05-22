@@ -31,7 +31,7 @@ libraryDependencies ++= Seq(
   "com.lihaoyi" %% "fastparse" % "0.3.4"
 )
 libraryDependencies ++= Seq("smack-java7", "smack-tcp", "smack-extensions") map 
-{ "org.igniterealtime.smack" % _ % "4.1.6" }
+{ "org.igniterealtime.smack" % _ % "4.1.7" }
 
 
 resolvers += "Glassfish" at "http://maven.glassfish.org/content/repositories/maven.hudson-labs.org"

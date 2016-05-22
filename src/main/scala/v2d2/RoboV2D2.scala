@@ -91,187 +91,43 @@ object V2D2 extends App with LoggerConfig {
       if (_connection.isConnected) _connection.disconnect()
   }
 
-  private val _roster:Roster = Roster.getInstanceFor(_connection);
   def sendLove(prop: String): String = {
     conf.getString(s"v2d2.sendlove.${prop}")
   }
-  def makeDirty() = {
-    log.info("DIRTY DIRTY")
-    _rosterDirty = true
-    _mapsDirty = true
-  }
-  _roster.setSubscriptionMode(Roster.SubscriptionMode.accept_all)
-  roster.addRosterListener(new RosterListener(){
-    def entriesAdded(args: Collection[String]) = {
-      log.info("entires added")
-      // _rosterDirty = true
-      // _mapsDirty = true
-      // TBD
-    }
-    def entriesDeleted(args: Collection[String]) = {
-      log.info("entires deleted")
-      // _rosterDirty = true
-      // _mapsDirty = true
-      // TBD
-    }
-    def entriesUpdated(args: Collection[String]) = {
-      log.info("entires updated")
-      // _rosterDirty = true
-      // _mapsDirty = true
-      // TBD
-    }
-    def presenceChanged(args: Presence) = {
-      // log.info("presence changed")
-      // _rosterDirty = true
-      // _mapsDirty = true
-      // TBD
-    }
-  })
-  _connection.sendPacket(new Presence(Presence.Type.available))
 
-  // Going to need to cache all of these this
-  def profile(jid: String): Future[Profile] = {
-    val pp = Promise[Profile]()
-    Future {
-      connection.sendIqWithResponseCallback(ProfileIQ(jid), new StanzaListener() {
-        def processPacket(packet: Stanza) = {
-          if (packet != null && packet.isInstanceOf[ProfileIQ]) {
-            pp.success(Profile(packet.asInstanceOf[ProfileIQ]))
-          } else {
-            pp.failure(UserUseless(s"Failed: ${jid}"))
-          }
-        }
-      })
-    }
-    pp.future
-  }
-
-  def user(entry:RosterEntry): Future[User] = {
-    val pu = Promise[User]()
-    Future{
-      profile(entry.getUser()) onComplete {
-        case Success(pr) =>
-          pu.success(
-            User(
-              name     = entry.getName(),
-              jid      = entry.getUser(),
-              nick     = pr.mention_name,
-              email    = pr.email,
-              entry    = entry
-            ))
-        case Failure(t) =>
-          log.error(s"failed with ${t}")
-      }
-    }
-    pu.future
-  }
-
-  private val entries: List[RosterEntry] = {
-    log.info("Waiting for roster to load")
-    if( _rosterDirty ){
-      _roster.reloadAndWait()
-    }
-    _rosterDirty = false
-    log.info("Roster Loaded")
-    _roster.getEntries().asScala.toList
-  }
-
-  def jidMap(): Future[Map[String,User]] = {
-    val pnm = Promise[Map[String,User]]()
-    users onComplete {
-      case Success(usrs) =>
-        println("user get")
-        pnm.success(usrs map (u => u.jid -> u) toMap)
-      case Failure(t) =>
-        pnm.failure(t)
-    }
-    pnm.future
-  }
-
-  def nickMap(): Future[Map[String,User]] = {
-    val pnm = Promise[Map[String,User]]()
-    users onComplete {
-      case Success(usrs) =>
-        pnm.success(usrs map (u => u.nick -> u) toMap)
-      case Failure(t) =>
-        pnm.failure(t)
-    }
-    pnm.future
-  }
-
-  private var _usercache: List[User] = List()
-  def users(): Future[List[User]] = {
-    val plist = Promise[List[User]]()
-    Future {
-      println(s"maps dirty: ${_mapsDirty}")
-      if( _mapsDirty ) {
-        println("NO CACHE")
-        Future.sequence(
-          entries map { entry =>
-            user(entry)
-        }) onComplete {
-          case Success(usrs) =>
-            plist.success(usrs)
-            _usercache = usrs
-          case Failure(t) =>
-            plist.failure(t)
-        }
-        _mapsDirty = false
-      } else {
-        println("CACHE")
-        plist.success(_usercache)
-      }
-    }
-    plist.future
-  }
-
-  // users onComplete {
-  //   case Success(ul) =>
-  //     println("==================================================")
-  //     println("SUCCESSSSS")
-  //     println("==================================================")
-  //   case Failure(ex) =>
-  //     println("==================================================")
-  //     println("you have failed")
-  //     println("==================================================")
-  //   case _ =>
-  //     println("YOU SUCK IT")
-  // }
-  // nickMap onComplete {
-  //   case Success(ul) =>
-  //     println("==================================================")
-  //     println("SUCCESSSSS")
-  //     ul foreach {case (key, value) => println(key + " -> " + value)}
-  //     println("==================================================")
-  //   case Failure(ex) =>
-  //     println("==================================================")
-  //     println("you have failed")
-  //     println("==================================================")
-  //   case _ =>
-  //     println("YOU SUCK IT")
-  // }
-
+  // _roster.setSubscriptionMode(Roster.SubscriptionMode.accept_all)
   // roster.addRosterListener(new RosterListener(){
-  //   def entriesAdded(args: Collection) = {
+  //   def entriesAdded(args: Collection[String]) = {
+  //     log.info("entires added")
+  //     // _rosterDirty = true
+  //     // _mapsDirty = true
   //     // TBD
   //   }
-  //   def entriesDeleted(args: Collection) = {
+  //   def entriesDeleted(args: Collection[String]) = {
+  //     log.info("entires deleted")
+  //     // _rosterDirty = true
+  //     // _mapsDirty = true
   //     // TBD
   //   }
-  //   def entriesUpdated(args: Collection) = {
+  //   def entriesUpdated(args: Collection[String]) = {
+  //     log.info("entires updated")
+  //     // _rosterDirty = true
+  //     // _mapsDirty = true
   //     // TBD
   //   }
   //   def presenceChanged(args: Presence) = {
+  //     // log.info("presence changed")
+  //     // _rosterDirty = true
+  //     // _mapsDirty = true
   //     // TBD
   //   }
   // })
 
+  _connection.sendPacket(new Presence(Presence.Type.available))
+
   // if (!roster.isLoaded()) roster.reload()
   def connection():XMPPTCPConnection = {
     _connection
-  }
-  def roster():Roster = {
-    _roster
   }
 
   // user logged on now add listeners

@@ -8,7 +8,13 @@ import v2d2.parsers.{Blackspace,BotCombinators}
 import v2d2.client.IMessage
 import v2d2.LoggerConfig
 
-case class KnockKnock(target:Option[String])
+case class Retort(
+  jid:Option[String],
+  user:Option[String],
+  sender:Option[String],
+  imsg:Option[IMessage])
+
+case class KnockKnock(imsg:IMessage, target:Option[String])
 object KnockKnock extends BotCombinators with LoggerConfig {
   import fastparse.noApi._
   import White._
@@ -19,12 +25,12 @@ object KnockKnock extends BotCombinators with LoggerConfig {
   val com: P[String] = P(bot.? ~ knocker ~ nick ~ End)
 
   def apply(imsg: IMessage): Option[KnockKnock] = {
-    apply(imsg.content)
+    apply(imsg.content, imsg)
   }
 
-  def apply(str: String): Option[KnockKnock] = {
+  def apply(str: String, imsg:IMessage): Option[KnockKnock] = {
     com.parse(str) match {
-      case Parsed.Success(value, _) => Some(KnockKnock(Some(value)))
+      case Parsed.Success(value, _) => Some(KnockKnock(imsg, Some(value)))
       case _ =>
         // println(com.parse(str))
         None
@@ -32,7 +38,7 @@ object KnockKnock extends BotCombinators with LoggerConfig {
   }
 }
 
-case class Whois(input:Option[String])
+case class Whois(imsg:IMessage, input:Option[String])
 object Whois extends BotCombinators {
   import fastparse.noApi._
   import White._
@@ -42,12 +48,13 @@ object Whois extends BotCombinators {
   val is: P[Unit] = P(("is"|"'s"))
   val punc: P[Unit] = P(("?"|"!"|"."))
   val com: P[Unit] = P(bot.? ~ who ~ is.? ~ there ~ punc.rep ~ End)
+
   def apply(imsg: IMessage): Option[Whois] = {
-    apply(imsg.content)
+    apply(imsg.content, imsg)
   }
-  def apply(str: String): Option[Whois] = {
+  def apply(str: String, imsg:IMessage): Option[Whois] = {
     com.parse(str) match {
-      case Parsed.Success(value, _) => Some(Whois(Some(str)))
+      case Parsed.Success(value, _) => Some(Whois(imsg, Some(str)))
       case _ =>
         // println(com.parse(str))
         None
@@ -55,7 +62,7 @@ object Whois extends BotCombinators {
   }
 }
 
-case class Who(input:Option[String])
+case class Who(imsg:IMessage, input:Option[String])
 object Who extends BotCombinators {
   import fastparse.noApi._
   import White._
@@ -64,12 +71,12 @@ object Who extends BotCombinators {
   val com: P[String] = P((!who ~ wild).rep.! ~ who ~ punc.rep ~ End)
 
   def apply(imsg: IMessage): Option[Who] = {
-    apply(imsg.content)
+    apply(imsg.content, imsg)
   }
 
-  def apply(str: String): Option[Who] = {
+  def apply(str: String, imsg: IMessage): Option[Who] = {
     com.parse(str) match {
-      case Parsed.Success(value, _) => Some(Who(Some(value)))
+      case Parsed.Success(value, _) => Some(Who(imsg, Some(value)))
       case _ =>
         // println(com.parse(str))
         None

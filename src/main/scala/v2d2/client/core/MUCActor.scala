@@ -11,7 +11,7 @@ import org.jivesoftware.smack.{MessageListener,PresenceListener}
 import org.jivesoftware.smackx.muc.{MultiUserChatManager, DiscussionHistory, MultiUserChat}
 import org.jxmpp.util.XmppStringUtils
 import v2d2.V2D2
-import v2d2.client.{IMessage,XMessage}
+import v2d2.client.{IMessage, XMessage, MUMessage}
 import v2d2.client.{Profile,ProfileIQ}
 import v2d2.actions.generic.protocol._
 import v2d2.actions.generic._
@@ -43,7 +43,7 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
     muc.join(V2D2.display, "", history, 5000)
     muc.addParticipantListener(new PresenceListener() {
       def processPresence(presence: Presence) = {
-        log.info(s"presence has changed in chat")
+        log.info(s"presence has changed in chat make roster dirty")
         context.actorSelection("/user/xmpp") ! MakeRosterDirty()
       }
     })
@@ -59,7 +59,7 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
       def processMessage(msg: Message) = {
         val sender = XmppStringUtils.parseResource(msg.getFrom())
         if (sender != V2D2.display) {
-          val imsg:IMessage = new XMessage(msg)
+          val imsg: IMessage = new MUMessage(msg, muc)
           // log.info(s"process msg" +
           //   s"\n\tsender: ${msg.getFrom()}" +
           //   s"\n\tcontent: ${msg.getBody()}" +
@@ -87,11 +87,10 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
   def receive: Receive = {
 
     case Relay(imsg) =>
-      val occupant = muc.getOccupant(imsg.fromRaw)
-      val fJid = XmppStringUtils.parseBareJid(occupant.getJid())
+      log.info(s"imsg: ${imsg}")
       if(imsg == null || imsg.content == null || imsg.content == "") None
       else context.children foreach { child => child ! imsg }
-      if(fJid != V2D2.v2d2Jid)
+      if(imsg != null && (imsg.fromJid != V2D2.v2d2Jid))
         _history = _history.enqueue(imsg)
       if(_history.length > _maxHist) 
         _history = _history.dequeue._2

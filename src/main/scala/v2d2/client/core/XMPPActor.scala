@@ -32,9 +32,13 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
 
   val chatManager: ChatManager = ChatManager.getInstanceFor(connection)
   val _roster:Roster = Roster.getInstanceFor(connection)
-  var _rosterDirty:Boolean = true;
+  private var _rosterDirty:Boolean = true
+  private var _rosterLoading = false
+  private var _rosterCache: List[RosterEntry] = Nil
 
   override def preStart = {
+    _roster.reloadAndWait()
+    _rosterCache = _roster.getEntries().asScala.toList
     // adding this fails at life
     // _roster.setSubscriptionMode(Roster.SubscriptionMode.accept_all)
     // _roster.addRosterListener(new RosterListener(){
@@ -94,6 +98,7 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
   def receive: Receive = {
 
     case MakeRosterDirty() =>
+      log.info("dirty roster")
       _rosterDirty = true;
 
     case rq: ProfileRQ =>
@@ -126,18 +131,26 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
       
     case RosterList() =>
       log.info("roster list request")
-      val req: Future[List[RosterEntry]] = Future {
-        log.info("Requesting roster")
-        if( _rosterDirty ){
-          log.info("reload roster")
-          _roster.reloadAndWait()
-        }
-        _rosterDirty = false
-        log.info("Roster Loaded")
-        _roster.getEntries().asScala.toList
-      }
-      req pipeTo sender
-
+      Future {
+        _rosterCache
+      } pipeTo sender
+      // log.info("roster list request")
+      // val req: Future[List[RosterEntry]] = Future {
+      //   log.info("Requesting roster")
+      //   while( _rosterLoading ) Thread sleep 1000
+      //   if( _rosterDirty ){
+      //     _rosterLoading = true
+      //     log.info("RELOAD ROSTER")
+      //     _roster.reloadAndWait()
+      //     _rosterCache = _roster.getEntries().asScala.toList
+      //   }
+      //   _rosterDirty = false
+      //   _rosterLoading = false
+      //   log.info("Roster Loaded")
+      //   _rosterCache
+      // }
+      // req pipeTo sender
+      //
     case UserList() =>
       log.info("user list request")
       val req = for {

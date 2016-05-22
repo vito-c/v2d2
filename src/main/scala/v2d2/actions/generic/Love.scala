@@ -108,8 +108,6 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
       context.parent ! s"Love was sent to ${nicks}\n  - ${success.reason}"
 
     case imsg: IMessage =>
-      val occupant = muc.getOccupant(imsg.fromRaw)
-      val fJid = XmppStringUtils.parseBareJid(occupant.getJid())
       Love(imsg) match {
         case Some(love) =>
           log.info("request love")
@@ -117,7 +115,7 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
             nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
             jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
           } yield(
-            jmap get (fJid) match {
+            jmap get (imsg.fromJid) match {
               case Some(user) =>
                 val sender = user
                 log.info("sending love!!")
