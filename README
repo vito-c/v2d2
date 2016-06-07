@@ -1,5 +1,6 @@
+
 src/main/resources/v2d2.conf
-if you want to use the sendlove api make sure you ypdae these
+if you want to use the sendlove api make sure you update these
 v2d2 {
   actors = [ "v2d2.Quitter", "v2d2.NailedIt", "v2d2.Help" ]
   rooms = [ { name = "1234_foobar@conf.hipchat.com", pass = "" } ]
