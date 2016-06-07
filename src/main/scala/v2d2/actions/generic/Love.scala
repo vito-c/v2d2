@@ -97,6 +97,9 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
       })
       request onComplete {
         case Success(result) =>
+          result map { r => 
+            log.info(s"res: ${r}")
+          }
           self ! LoveSuccess(loves.sender, loves.receivers, loves.reason, loves.imsg)
         case Failure(t) =>
           context.parent ! "An error has occured: " + t.getMessage
@@ -110,8 +113,9 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
     case imsg: IMessage =>
       Love(imsg) match {
         case Some(love) =>
-          log.info("request love")
-          val req = for {
+          log.info(s"request love ${imsg.fromJid}")
+          log.info(s"request love ${love}")
+          for {
             nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
             jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
           } yield(
@@ -128,6 +132,8 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
                     case Some(user) if user.jid == sender.jid =>
                       if (love.targets.length == 1) {
                         context.parent ! s"@${sender.nick} great job you REALLY broke my programming"
+                      } else {
+                        context.parent ! s"@${sender.nick} so clever hiding your nick in the list I almost didn't see it... I'll just send love to the others for you."
                       }
                       Nil
                     case Some(user) => 
@@ -138,7 +144,9 @@ class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonPro
                       Nil
                   }
                 }
-                self ! SendUsersLove(sender, users, love.reason, imsg)
+                log.info(s"${users}")
+                if(users.length > 0)
+                  self ! SendUsersLove(sender, users, love.reason, imsg)
               case _ =>
                 context.parent ! s"..sigh humans."
           })

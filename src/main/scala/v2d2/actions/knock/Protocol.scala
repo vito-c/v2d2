@@ -1,6 +1,7 @@
 package v2d2.actions.knock
 
 import fastparse._
+import fastparse.core.Parsed
 import fastparse.all._
 import fastparse.parsers.Combinators.Rule
 import fastparse.parsers._
@@ -16,12 +17,11 @@ case class Retort(
 
 case class KnockKnock(imsg:IMessage, target:Option[String])
 object KnockKnock extends BotCombinators with LoggerConfig {
-  import fastparse.noApi._
+  // import fastparse.noApi._
   import White._
 
   val knock: P[Unit] = P(IgnoreCase("knock"))
   val knocker: P[Unit] = P((knock ~  knock.?) ~ ",".? )
-  val target: P[Unit] = P(!knock ~ AnyChar.rep(1))
   val com: P[String] = P(bot.? ~ knocker ~ nick ~ End)
 
   def apply(imsg: IMessage): Option[KnockKnock] = {
@@ -40,7 +40,7 @@ object KnockKnock extends BotCombinators with LoggerConfig {
 
 case class Whois(imsg:IMessage, input:Option[String])
 object Whois extends BotCombinators {
-  import fastparse.noApi._
+  // import fastparse.noApi._
   import White._
   val who: P[Unit] = P(IgnoreCase("who"))
   val dat: P[Unit] = P("(".? ~ IgnoreCase("dat") ~ ")".?)
@@ -64,7 +64,7 @@ object Whois extends BotCombinators {
 
 case class Who(imsg:IMessage, input:Option[String])
 object Who extends BotCombinators {
-  import fastparse.noApi._
+  // import fastparse.noApi._
   import White._
   val who: P[Unit] = P(IgnoreCase("who"))
   val punc: P[Unit] = P(("?"|"!"|"."))

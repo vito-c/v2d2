@@ -29,7 +29,6 @@ import org.jivesoftware.smack.tcp.{XMPPTCPConnectionConfiguration, XMPPTCPConnec
 import org.jivesoftware.smackx.muc.Affiliate
 import org.jivesoftware.smackx.muc.Occupant
 import org.jivesoftware.smackx.muc.{MultiUserChatManager, DiscussionHistory, MultiUserChat}
-import org.jivesoftware.smackx.ping.PingManager
 import org.slf4j.LoggerFactory
 import reflect.runtime.universe.Type
 import reflect.runtime.universe.Type
@@ -41,8 +40,7 @@ import scala.util.control.NonFatal
 import scala.util.{Success, Failure}
 import v2d2.client.core.{XMPPActor, JoinRoom}
 import v2d2.client.{Profile,ProfileProvider,ProfileIQ,User}
-
-case class UserUseless(msg: String) extends Exception(msg)
+import v2d2.client.core.Ping
 
 object V2D2 extends App with LoggerConfig {
 
@@ -139,6 +137,12 @@ object V2D2 extends App with LoggerConfig {
     name = "xmpp"
   )
 
+  xactor ! Ping()
+  val cancellable =
+  system.scheduler.schedule(0 milliseconds, 5000 milliseconds) {
+    xactor ! Ping()
+  }
+
   // val rooms = ConfigFactory.load().getList("v2d2.rooms").toList
   // rooms map { cv =>
   //   val config = (cv.asInstanceOf[ConfigObject]).toConfig();
@@ -160,7 +164,7 @@ object V2D2 extends App with LoggerConfig {
   //   system.log.info(s"entry: ${entry}")
   // }
 
-  PingManager.getInstanceFor(_connection).setPingInterval(5)
+  // PingManager.getInstanceFor(_connection).setPingInterval(5)
 }
 
 trait LoggerConfig {

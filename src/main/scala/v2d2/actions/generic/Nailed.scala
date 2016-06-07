@@ -4,7 +4,6 @@ import akka.actor.{Actor, ActorContext, Props, ActorLogging}
 import v2d2.client.IMessage
 import scala.util.Random
 import v2d2.actions.generic.protocol.Nailed
-import v2d2.client.core.Test
 
 class NailedIt extends Actor with ActorLogging {
 
@@ -15,7 +14,7 @@ class NailedIt extends Actor with ActorLogging {
   )
 
   def receive: Receive = {
-    case Nailed(imsg) =>
+    case n: Nailed =>
       context.parent ! "" + Random.shuffle(pics).head
     case imsg: IMessage =>
       Nailed(imsg) match {

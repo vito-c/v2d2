@@ -9,7 +9,7 @@ scalaVersion := "2.11.7"
 val akkaVersion = "2.4.4" // "2.4.2-RC2"
 val sprayVersion = "1.3.2"
 val scalaTestVersion = "2.2.6"
-// scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
 // scalacOptions ++= Seq("-unchecked", "-deprecation")
 // Need to import typesafe better
@@ -28,7 +28,8 @@ libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-lang3" % "3.4",
   "com.typesafe" % "config" % "1.3.0",
   // "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
-  "com.lihaoyi" %% "fastparse" % "0.3.4"
+  "com.lihaoyi" %% "fastparse" % "0.3.7",
+  "com.github.seratch" %% "awscala" % "0.3.+"
 )
 libraryDependencies ++= Seq("smack-java7", "smack-tcp", "smack-extensions") map 
 { "org.igniterealtime.smack" % _ % "4.1.7" }

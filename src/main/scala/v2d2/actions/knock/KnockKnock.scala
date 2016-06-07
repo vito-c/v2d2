@@ -36,7 +36,6 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
   def receive: Receive = {
 
     case knock: KnockKnock =>
-      context.parent ! s"knock knock case "
       for {
         nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
       } yield {
@@ -44,7 +43,6 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
         val jid  = knock.imsg.fromJid
         nmap get (nick.trim) match {
           case Some(user) => // if user.jid != V2D2.v2d2Jid =>
-            context.parent ! s"starting knock knock joke with ${nick}"
             val jk = targets.getOrElse(
               user.jid,
               Joke(
@@ -145,17 +143,17 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
       //   s"\n${targets}" +
       //   s"\n===========================================")
 
-      if(KnockKnock(imsg) != None) self ! KnockKnock(imsg)
-      else if(Whois(imsg) != None) self ! Whois(imsg)
-      else if(Who(imsg) != None)   self ! Who(imsg)
-      else { // if( targets.length > 0 ) {
+      KnockKnock(imsg).map(k => self ! k)
+      Whois(imsg).map(w => self ! w)
+      Who(imsg).map(w => self ! w)
+      if((Whois(imsg) == None) && (Who(imsg) == KnockKnock(imsg)) && targets.size > 0) {
         val jid = imsg.fromJid
         for {
           jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
         } yield {
             jmap get (jid) match {
               case Some(user) =>
-                context.parent ! s"user found: ${user} ${jid}"
+                // context.parent ! s"user found: ${user} ${jid}"
                 val jk = targets.getOrElse(
                   user.jid,
                   Joke(target = user.jid, state = 0, sender = jid, jokeIdx = 0))
@@ -170,7 +168,6 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
             }
         }
       }
-
-      case _ => None
+    case _ => None
   }
 }

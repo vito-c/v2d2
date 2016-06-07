@@ -15,7 +15,7 @@ class Help extends Actor with ActorLogging {
   )
 
   def receive: Receive = {
-    case Helpme(imsg) =>
+    case h: Helpme =>
       context.parent ! "" + Random.shuffle(pics).head
     case imsg:IMessage =>
       Helpme(imsg) match {

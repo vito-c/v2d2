@@ -30,4 +30,3 @@ object Blackspace {
 
   def matches(c: Char): Boolean = wTable.charAt((Multiplier * c) >>> Shift) != c
 }
-

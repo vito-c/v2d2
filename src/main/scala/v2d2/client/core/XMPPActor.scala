@@ -22,6 +22,11 @@ import scala.concurrent.duration._
 import scala.util.control.NonFatal
 import scala.util.{Success, Failure}
 import v2d2.client.{Profile,ProfileIQ,User}
+import org.jivesoftware.smack.{MessageListener,PresenceListener}
+import v2d2.V2D2
+import org.jivesoftware.smackx.ping.PingManager
+import org.jivesoftware.smackx.xhtmlim.XHTMLManager
+import v2d2.client._
 
 class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
 
@@ -32,41 +37,62 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
 
   val chatManager: ChatManager = ChatManager.getInstanceFor(connection)
   val _roster:Roster = Roster.getInstanceFor(connection)
-  private var _rosterDirty:Boolean = true
+  private var _usersDirty: Boolean = true
+  private var _usersCache: List[User] = Nil
+  private var _rosterDirty: Boolean = true
   private var _rosterLoading = false
   private var _rosterCache: List[RosterEntry] = Nil
 
   override def preStart = {
-    _roster.reloadAndWait()
-    _rosterCache = _roster.getEntries().asScala.toList
+    // _rosterLoading = true
+    // _roster.reloadAndWait()
+    // _rosterCache = _roster.getEntries().asScala.toList
+    // _rosterLoading = false
+    // _rosterDirty = false
+
     // adding this fails at life
     // _roster.setSubscriptionMode(Roster.SubscriptionMode.accept_all)
-    // _roster.addRosterListener(new RosterListener(){
-    //   def entriesAdded(args: Collection[String]) = {
-    //     log.info("entires added")
-    //     // _rosterDirty = true
-    //     // _mapsDirty = true
-    //     // TBD
-    //   }
-    //   def entriesDeleted(args: Collection[String]) = {
-    //     log.info("entires deleted")
-    //     // _rosterDirty = true
-    //     // _mapsDirty = true
-    //     // TBD
-    //   }
-    //   def entriesUpdated(args: Collection[String]) = {
-    //     log.info("entires updated")
-    //     // _rosterDirty = true
-    //     // _mapsDirty = true
-    //     // TBD
-    //   }
-    //   def presenceChanged(args: Presence) = {
-    //     // log.info("presence changed")
-    //     // _rosterDirty = true
-    //     // _mapsDirty = true
-    //     // TBD
-    //   }
-    // })
+    _roster.addRosterListener(new RosterListener(){
+      def entriesAdded(args: Collection[String]) = {
+        log.info("entires added")
+        // _rosterDirty = true
+        // _mapsDirty = true
+        // TBD
+      }
+      def entriesDeleted(args: Collection[String]) = {
+        log.info("entires deleted")
+        // _rosterDirty = true
+        // _mapsDirty = true
+        // TBD
+      }
+      def entriesUpdated(args: Collection[String]) = {
+        log.info("entires updated")
+        // _rosterDirty = true
+        // _mapsDirty = true
+        // TBD
+      }
+      def presenceChanged(args: Presence) = {
+        // log.info(s"presence changed")
+        // _rosterDirty = true
+        // _mapsDirty = true
+        // TBD
+      }
+    })
+
+    val chatmanager = ChatManager.getInstanceFor(connection);
+    val _chat: Chat = chatmanager.createChat(V2D2.vitoJid, new ChatMessageListener() {
+        def processMessage(chat: Chat, message: Message) {
+            log.info("Received message: " + message);
+        }
+    });
+    val msg = new Message()
+    msg.setBody("hello world")
+    val xh = new XHTMLMemo()
+    val xhtmlBody = xh.dump()
+    XHTMLManager.addBody(msg, xhtmlBody);
+    log.info(s"${msg}")
+    _chat.sendMessage(msg);
+
     chatManager.addChatListener(
       new ChatManagerListener() {
         @Override
@@ -97,6 +123,9 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
 
   def receive: Receive = {
 
+    case p: Ping =>
+	  PingManager.getInstanceFor(connection).pingMyServer();
+
     case MakeRosterDirty() =>
       log.info("dirty roster")
       _rosterDirty = true;
@@ -126,53 +155,66 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
           nick     = profile.mention_name,
           email    = profile.email,
           entry    = entry
-      ) ) 
+      ) )
       req pipeTo sender
-      
+
     case RosterList() =>
       log.info("roster list request")
       Future {
-        _rosterCache
+        if( _rosterDirty == false ) {
+          log.info("CACHED ROSTER")
+          _rosterCache
+        } else {
+          // while( _rosterLoading ) { Thread sleep 1000 }
+          // _rosterLoading = true
+          _roster.reloadAndWait()
+          _rosterDirty = false
+          // _rosterLoading = false
+          _rosterCache = _roster.getEntries().asScala.toList
+          _rosterCache //needs to be here
+        }
       } pipeTo sender
-      // log.info("roster list request")
-      // val req: Future[List[RosterEntry]] = Future {
-      //   log.info("Requesting roster")
-      //   while( _rosterLoading ) Thread sleep 1000
-      //   if( _rosterDirty ){
-      //     _rosterLoading = true
-      //     log.info("RELOAD ROSTER")
-      //     _roster.reloadAndWait()
-      //     _rosterCache = _roster.getEntries().asScala.toList
-      //   }
-      //   _rosterDirty = false
-      //   _rosterLoading = false
-      //   log.info("Roster Loaded")
-      //   _rosterCache
-      // }
-      // req pipeTo sender
-      //
+
     case UserList() =>
       log.info("user list request")
       val req = for {
         roster <- (self ? RosterList()).mapTo[List[RosterEntry]]
-        userlist <- Future.sequence(roster map { re =>
-          for { user <- (self ? re).mapTo[User] } yield(user)
-        }) 
-      } yield(userlist) 
+        userlist <-
+          if(_usersDirty == true) {
+            log.info("fresh users to map")
+            Future.sequence(
+              roster map { re =>
+                for { user <- (self ? re).mapTo[User] } yield(user)
+            })
+          } else {
+            log.info("USERS CACHED")
+            Future { _usersCache }
+          }
+      } yield(
+        userlist
+      )
       req pipeTo sender
+      req onComplete {
+        case Success(result)  =>
+          log.info("USER LIST COMPLETE")
+          _usersCache = result
+          _usersDirty = false
+        case Failure(t) =>
+          context.parent ! "An error has occured: " + t.getMessage
+      }
 
     case UserMap() =>
       log.info("user map request")
       val req = for {
         ulist <- (self ? UserList()).mapTo[List[User]]
-      } yield(ulist.map(u => u.jid -> u).toMap) 
+      } yield(ulist.map(u => u.jid -> u).toMap)
       req pipeTo sender
 
     case NickMap() =>
       log.info("nick map request")
       val req = for {
         ulist <- (self ? UserList()).mapTo[List[User]]
-      } yield(ulist.map(u => u.nick -> u).toMap) 
+      } yield(ulist.map(u => u.nick -> u).toMap)
       req pipeTo sender
 
     case JoinRoom(room, chatpass) =>
@@ -184,7 +226,7 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
         Props(classOf[MUCActor], muc, connection),
         name = room
       )
-      mactor ! "Hello, humans"
+      // mactor ! "Hello, humans"
 
     case _ => None
   }
