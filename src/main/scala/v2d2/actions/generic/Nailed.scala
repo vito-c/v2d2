@@ -3,7 +3,7 @@ package v2d2.actions.generic
 import akka.actor.{Actor, ActorContext, Props, ActorLogging}
 import v2d2.client.IMessage
 import scala.util.Random
-import v2d2.actions.generic.protocol.Nailed
+import v2d2.actions.generic.protocol.{Nailed,Response}
 
 class NailedIt extends Actor with ActorLogging {
 
@@ -19,7 +19,7 @@ class NailedIt extends Actor with ActorLogging {
     case imsg: IMessage =>
       Nailed(imsg) match {
         case Some(cmd) =>
-          context.parent ! "" + Random.shuffle(pics).head
+          context.parent ! Response(imsg, "" + Random.shuffle(pics).head)
         case _ => None
       }
     case _ => None

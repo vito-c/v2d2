@@ -52,8 +52,8 @@ object V2D2 extends App with LoggerConfig {
 
   implicit val timeout = Timeout(5.seconds)
 
-  val vitoJid = "17702_2444182@chat.hipchat.com" // vito's jid
-  val v2d2Jid = "17702_2503775@chat.hipchat.com"
+  val vitoJid = "1_492@chat.btf.hipchat.com"
+  val v2d2Jid = "1_1821@btf.hipchat.com"
 
   val conf = ConfigFactory.load("v2d2.conf")
   val creds = ConfigFactory.load("creds.conf")
@@ -78,7 +78,7 @@ object V2D2 extends App with LoggerConfig {
   log.info("xmpptcp connection built")
 
   try {
-    // _connection.setPacketReplyTimeout(0000)
+    _connection.setPacketReplyTimeout(5000)
     _connection.connect()
     log.info("xmpptcp connection established")
     _connection.login(uid, password)
@@ -87,6 +87,10 @@ object V2D2 extends App with LoggerConfig {
     case NonFatal(e) =>
       log.error("Login or connection exception", e)
       if (_connection.isConnected) _connection.disconnect()
+  }
+
+  def who(prop: String): String = {
+    conf.getString(s"v2d2.who.${prop}")
   }
 
   def sendLove(prop: String): String = {
@@ -155,8 +159,8 @@ object V2D2 extends App with LoggerConfig {
     val config = (entry.asInstanceOf[ConfigObject]).toConfig();
     val name = config.getString("name")
     val pass = config.getString("pass")
-    xactor ! JoinRoom(name, Some(pass))
     log.info(s"name: ${name} pass: ${pass}")
+    xactor ! JoinRoom(name, Some(pass))
   }
 
   // val actors = conf.getList("v2d2.actors").toList

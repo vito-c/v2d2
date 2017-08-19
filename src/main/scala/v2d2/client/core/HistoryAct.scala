@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorContext, Props, ActorLogging}
 import v2d2.client.{IMessage,DMessage,MsgData}
 import org.jivesoftware.smackx.muc.MultiUserChat
 import v2d2.actions.generic.protocol._ 
+import v2d2.actions.knock.KnockKnock
 
 class HistoryAct(muc: MultiUserChat) extends Actor with ActorLogging {
   def receive: Receive = {
@@ -15,6 +16,7 @@ class HistoryAct(muc: MultiUserChat) extends Actor with ActorLogging {
         case _ => None
       }
 
+    // TODO: add elastic serach support?
     case history: History =>
       val msgs = history.msgs.get
       val again = history.again.get
@@ -22,7 +24,20 @@ class HistoryAct(muc: MultiUserChat) extends Actor with ActorLogging {
         case Some(cmd) =>
           // brute force right now
           cmd.toLowerCase match {
+            case "knock" | "k" => 
+              log.info(s"sending knock from memory")
+              context.parent ! Relay( new DMessage( 
+                MsgData(
+                  msgs(
+                    msgs.lastIndexWhere { msg => KnockKnock(msg) != None }
+                  ).content,
+                  again.imsg.fromJid,
+                  again.imsg.fromName,
+                  again.imsg.fromNick,
+                  again.imsg.fromRaw,
+                  again.imsg.fromMsgJid)))
             case "love" | "l" | "lov" => 
+              log.info(s"sending love from memory")
               val loveIdx = msgs.lastIndexWhere { msg => Love(msg) != None }
               val ms = msgs(loveIdx)
               val am = again.imsg

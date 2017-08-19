@@ -1,5 +1,6 @@
 package v2d2.client.core
 
+import org.jxmpp.util.XmppStringUtils
 import akka.actor.{ActorRef, Actor, ActorSystem, ActorContext, Props, ActorLogging}
 import akka.http.scaladsl.model._
 import akka.japi.Util.immutableSeq
@@ -9,6 +10,10 @@ import akka.util.Timeout
 import collection.JavaConversions._
 import concurrent.{Future, Promise}
 import java.util.Collection
+import v2d2.actions.knock.Knocker
+import v2d2.actions.generic.protocol._
+import v2d2.actions.generic._
+import v2d2.actions.love.WhoLoveAct
 import org.jivesoftware.smack.StanzaListener
 import org.jivesoftware.smack.chat.{ChatMessageListener, ChatManager, ChatManagerListener, Chat}
 import org.jivesoftware.smack.packet.{Stanza, Presence, Message}
@@ -27,6 +32,7 @@ import v2d2.V2D2
 import org.jivesoftware.smackx.ping.PingManager
 import org.jivesoftware.smackx.xhtmlim.XHTMLManager
 import v2d2.client._
+import v2d2.actions.generic.protocol._
 
 class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
 
@@ -44,6 +50,14 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
   private var _rosterCache: List[RosterEntry] = Nil
 
   override def preStart = {
+    context.actorOf(Props(classOf[Quitter]), name = "cmd:quit")// + muc.getRoom() )
+    context.actorOf(Props(classOf[NailedIt]), name = "cmd:nailed")// + muc.getRoom() )
+    context.actorOf(Props(classOf[Help]), name = "cmd:help")// + muc.getRoom() )
+    // context.actorOf(Props(classOf[Knocker], muc), name = "knocker")// + muc.getRoom() )
+    // context.actorOf(Props(classOf[Lover], muc), name = "lover")// + muc.getRoom() )
+    context.actorOf(Props(classOf[WhoLoveAct]), name = "cmd:wholove")// + muc.getRoom() )
+    // context.actorOf(Props(classOf[ServerAct], muc), name = "server")// + muc.getRoom() )
+    // context.actorOf(Props(classOf[HistoryAct], muc), name = "history")// + muc.getRoom() )
     // _rosterLoading = true
     // _roster.reloadAndWait()
     // _rosterCache = _roster.getEntries().asScala.toList
@@ -80,48 +94,80 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
     })
 
     val chatmanager = ChatManager.getInstanceFor(connection);
-    val _chat: Chat = chatmanager.createChat(V2D2.vitoJid, new ChatMessageListener() {
-        def processMessage(chat: Chat, message: Message) {
-            log.info("Received message: " + message);
-        }
-    });
-    val msg = new Message()
-    msg.setBody("hello world")
-    val xh = new XHTMLMemo()
-    val xhtmlBody = xh.dump()
-    XHTMLManager.addBody(msg, xhtmlBody);
-    log.info(s"${msg}")
-    _chat.sendMessage(msg);
+    // val _chat: Chat = chatmanager.createChat(
+    //   V2D2.vitoJid, new ChatMessageListener() {
+    //     def processMessage(chat: Chat, message: Message) {
+    //         if(message.getBody() != null)
+    //           log.info("RECEIVED MESSAGE: " + message.getBody());
+    //     }
+    // });
+
+    // val msg = new Message()
+    // msg.setBody("hello world")
+    // val xh = new XHTMLMemo()
+    // val xhtmlBody = xh.dump()
+    // XHTMLManager.addBody(msg, xhtmlBody);
+    // log.info(s"${msg}")
+    // _chat.sendMessage(msg);
 
     chatManager.addChatListener(
       new ChatManagerListener() {
         @Override
-        def chatCreated(chat: Chat, createdLocally: Boolean)
-        {
-          if (!createdLocally) {
-            chat.addMessageListener(new ChatMessageListener() {
-              def processMessage(chat: Chat, msg: Message) = {
-                chat.sendMessage("(shrug)")
-                // val imsg:IMessage = new XMessage(msg)
-                // log.info(s"process msg" +
-                //   s"\n\tsender: ${msg.getFrom()}" +
-                //   s"\n\tcontent: ${msg.getBody()}" +
-                //   s"\n\txml: ${msg.toXML()}" +
-                //   s"\n\tdisplay: ${V2D2.display}")
-                // log.info(s"msg: ${imsg}")
-                // log.info(s"content: ${imsg.content}")
-                // if(imsg != null && imsg.content != null)
-                //   self ! Relay(imsg)
-                // else
-                //   log.info("dont send")
+        def chatCreated(chat: Chat, createdLocally: Boolean) {
+          log.info("CHAT CREATED")
+          chat.addMessageListener(new ChatMessageListener() {
+            def processMessage(chat: Chat, message: Message) {
+              val imsg: IMessage = new XMessage(message)
+              val sender = XmppStringUtils.parseResource(message.getFrom())
+              log.info("RECEIVED MESSAGE: " + message.getBody());
+              if(imsg != null && imsg.content != null && sender != V2D2.display) {
+                self ! Relay(imsg)
               }
-            }) // end of msg listener
-          }
+            }
+          });
+          // if (!createdLocally) {
+          //   log.info("CHAT CREATED LOCALLY")
+          //   chat.addMessageListener(new ChatMessageListener() {
+          //     def processMessage(chat: Chat, msg: Message) = {
+          //       chat.sendMessage("(shrug)")
+          //       // val imsg:IMessage = new XMessage(msg)
+          //       // log.info(s"process msg" +
+          //       //   s"\n\tsender: ${msg.getFrom()}" +
+          //       //   s"\n\tcontent: ${msg.getBody()}" +
+          //       //   s"\n\txml: ${msg.toXML()}" +
+          //       //   s"\n\tdisplay: ${V2D2.display}")
+          //       // log.info(s"msg: ${imsg}")
+          //       // log.info(s"content: ${imsg.content}")
+          //       // if(imsg != null && imsg.content != null)
+          //       //   self ! Relay(imsg)
+          //       // else
+          //       //   log.info("dont send")
+          //     }
+          //   }) // end of msg listener
+          // } else {
+          //   log.info("CHAT NOT CREATED LOCALLY")
+          // }
         }
     })
   }
 
   def receive: Receive = {
+
+    case Response(imsg, response) =>
+      ChatManager.getInstanceFor(connection)
+        .createChat(imsg.fromJid).sendMessage(response)
+
+    case Relay(imsg) =>
+      log.info(s"CHILDREN: ${context.children}")
+      if(imsg == null || imsg.content == null || imsg.content == "") None
+      else context.children foreach { child => 
+        if(child.path.name.matches("cmd:.*"))
+          child ! imsg 
+      }
+      // if(imsg != null && imsg.fromJid != "" && (imsg.fromJid != V2D2.v2d2Jid))
+      //   _history = _history.enqueue(imsg)
+      // if(_history.length > _maxHist)
+      //   _history = _history.dequeue._2
 
     case p: Ping =>
 	  PingManager.getInstanceFor(connection).pingMyServer();
@@ -210,6 +256,13 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
       } yield(ulist.map(u => u.jid -> u).toMap)
       req pipeTo sender
 
+    case EmailMap() =>
+      log.info("nick map request")
+      val req = for {
+        ulist <- (self ? UserList()).mapTo[List[User]]
+      } yield(ulist.map(u => u.email -> u).toMap)
+      req pipeTo sender
+
     case NickMap() =>
       log.info("nick map request")
       val req = for {
@@ -219,6 +272,7 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
 
     case JoinRoom(room, chatpass) =>
       log.info("joining room")
+      // val rname = room.replaceAll("@.*$","")
       val muc = MultiUserChatManager
         .getInstanceFor(connection)
         .getMultiUserChat(room)
