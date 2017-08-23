@@ -1,4 +1,4 @@
-package v2d2.actions.generic
+package v2d2.actions.love
 
 import akka.actor.{ActorRef, Actor, ActorSystem, ActorContext, Props, ActorLogging}
 import akka.http.scaladsl.Http
@@ -22,14 +22,13 @@ import spray.client.pipelining._
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.encoding.{Gzip, Deflate}
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
+
 import v2d2.V2D2
-import v2d2.actions.generic.protocol.LoveJsonProtocol
-import v2d2.actions.generic.protocol.LoveJsonProtocol._
-import v2d2.actions.generic.protocol._
 import v2d2.client.{IMessage,User}
+import v2d2.actions.generic.protocol.Response
 import v2d2.client.core._
 
-class Lover(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonProtocol {
+class LoveAct(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonProtocol {
 
   import system.dispatcher
   implicit val system = ActorSystem()

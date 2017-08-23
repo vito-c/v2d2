@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorContext, Props, ActorLogging}
 import v2d2.client.{IMessage,DMessage,MsgData}
 import org.jivesoftware.smackx.muc.MultiUserChat
 import v2d2.actions.generic.protocol._ 
+import v2d2.actions.love.Love
 import v2d2.actions.knock.KnockKnock
 
 class HistoryAct(muc: MultiUserChat) extends Actor with ActorLogging {

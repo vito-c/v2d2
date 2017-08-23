@@ -15,7 +15,7 @@ import v2d2.client.{IMessage, XMessage, MUMessage, XHTMLMemo}
 import v2d2.client.{Profile,ProfileIQ}
 import v2d2.actions.generic.protocol._
 import v2d2.actions.generic._
-import v2d2.actions.love.WhoLoveAct
+import v2d2.actions.love._
 import org.jivesoftware.smackx.xhtmlim.XHTMLManager
 
 class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor with ActorLogging {
@@ -30,7 +30,7 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
     context.actorOf(Props(classOf[NailedIt]), name = "nailed")// + muc.getRoom() )
     context.actorOf(Props(classOf[Help]), name = "help")// + muc.getRoom() )
     context.actorOf(Props(classOf[Knocker], muc), name = "knocker")// + muc.getRoom() )
-    context.actorOf(Props(classOf[Lover], muc), name = "lover")// + muc.getRoom() )
+    // context.actorOf(Props(classOf[LoveAct], muc), name = "lover")// + muc.getRoom() )
     context.actorOf(Props(classOf[WhoLoveAct]), name = "wholove")// + muc.getRoom() )
     context.actorOf(Props(classOf[ServerAct], muc), name = "server")// + muc.getRoom() )
     context.actorOf(Props(classOf[HistoryAct], muc), name = "history")// + muc.getRoom() )

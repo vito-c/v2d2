@@ -25,16 +25,11 @@ import spray.httpx.encoding.{Gzip, Deflate}
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
 
 import v2d2.V2D2
-import v2d2.actions.generic.protocol.LoveListJPTL
-import v2d2.actions.generic.protocol.LoveListJPTL._
-import v2d2.actions.generic.protocol.LoveResultJPTL
-import v2d2.actions.generic.protocol.LoveResultJPTL._
-// import v2d2.actions.generic.protocol.WhoJPTL._
-import v2d2.actions.generic.protocol._
 import v2d2.client.{IMessage,User}
 import v2d2.client.core._
+import v2d2.actions.generic.protocol.Response
 
-class WhoLoveAct extends Actor with ActorLogging with LoveResultJPTL {
+class WhoLoveAct extends Actor with ActorLogging with LoveListJPTL with LoveResultJPTL {
 
   import system.dispatcher
   implicit val system = ActorSystem()

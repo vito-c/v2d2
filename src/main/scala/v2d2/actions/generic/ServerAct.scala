@@ -23,8 +23,8 @@ import spray.httpx.SprayJsonSupport._
 import spray.httpx.encoding.{Gzip, Deflate}
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
 import v2d2.V2D2
-import v2d2.actions.generic.protocol.LoveJsonProtocol
-import v2d2.actions.generic.protocol.LoveJsonProtocol._
+import v2d2.actions.love.LoveJsonProtocol
+import v2d2.actions.love.LoveJsonProtocol._
 import v2d2.actions.generic.protocol._
 import v2d2.client.{IMessage,User}
 import v2d2.client.{XHTMLMemo}

@@ -1,4 +1,4 @@
-package v2d2.actions.generic.protocol
+package v2d2.actions.love
 
 import fastparse._
 import fastparse.core.Parsed

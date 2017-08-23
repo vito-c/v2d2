@@ -13,7 +13,7 @@ import java.util.Collection
 import v2d2.actions.knock.Knocker
 import v2d2.actions.generic.protocol._
 import v2d2.actions.generic._
-import v2d2.actions.love.WhoLoveAct
+import v2d2.actions.love._
 import org.jivesoftware.smack.StanzaListener
 import org.jivesoftware.smack.chat.{ChatMessageListener, ChatManager, ChatManagerListener, Chat}
 import org.jivesoftware.smack.packet.{Stanza, Presence, Message}
@@ -54,7 +54,7 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
     context.actorOf(Props(classOf[NailedIt]), name = "cmd:nailed")// + muc.getRoom() )
     context.actorOf(Props(classOf[Help]), name = "cmd:help")// + muc.getRoom() )
     // context.actorOf(Props(classOf[Knocker], muc), name = "knocker")// + muc.getRoom() )
-    // context.actorOf(Props(classOf[Lover], muc), name = "lover")// + muc.getRoom() )
+    // context.actorOf(Props(classOf[LoveAct], muc), name = "cmd:lover")// + muc.getRoom() )
     context.actorOf(Props(classOf[WhoLoveAct]), name = "cmd:wholove")// + muc.getRoom() )
     // context.actorOf(Props(classOf[ServerAct], muc), name = "server")// + muc.getRoom() )
     // context.actorOf(Props(classOf[HistoryAct], muc), name = "history")// + muc.getRoom() )
