@@ -26,12 +26,12 @@ case class SendUsersLove(
   recipients: Seq[User],
   message: Option[String],
   imsg: IMessage)
-case class GetWhoUser(imsg: IMessage, target: User)
-case class GetWhoAll(imsg: IMessage, search: String)
+
 case class GetUsersSentLove(
   target: User,
   senderNick: String,
   imsg: IMessage)
+
 case class GetUsersLove(
   target: User,
   senderNick: String,
@@ -55,23 +55,6 @@ case class LoveResult(
   message: String,
   sentDate: Option[Int]
 )
-// case class SendLoves(
-//   sender: User,
-//   receivers: Seq[User],
-//   senderNick: String,
-//   receiverNicks: Seq[String],
-//   reason: String,
-//   imsg: IMessage)
-
-// case class SendLoveResult(status: String, error: String, info: String)
-// case class LoveNickResult(success: Boolean, nickname: String)
-//
-// trait LoveJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
-//   implicit val loveNickFormat = jsonFormat2(LoveNickResult)
-// }
-// object LoveJsonProtocol2 extends DefaultJsonProtocol {
-//   implicit val sendLoveFormat = jsonFormat3(SendLoveResult)
-// }
 
 trait LoveListJPTL extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val loveResultFormat = jsonFormat4(LoveResult.apply)
@@ -163,53 +146,6 @@ object WhoLove extends BotCombinators {
   }
 }
 
-case class WhoIs(imsg:IMessage, target: String)
-object WhoIs extends BotCombinators {
-  val ws: P[Unit] = P((" "|s"\t").rep.?)
-  val who: P[Unit] = P(IgnoreCase("who") ~ ws ~ IgnoreCase("is") ~ ws).log()
-  val letter = CharIn('A' to 'Z') | CharIn('a' to 'z')
-  val target: P[String] = P( 
-    ((letter.rep ~ "." ~ letter.rep).! ~ "@".? ~ AnyChar.rep | 
-      (letter.rep ~ " " ~ letter.rep).! |
-      at.? ~ (letter.rep).! ) ~ " ".?).log()
-  val opt: P[String] = P(bot.? ~ who ~ target ~ "?".rep ~ End).log()
-
-  def apply(imsg: IMessage): Option[WhoIs] = {
-    apply(imsg.content, imsg)
-  }
-
-  def apply(str: String, imsg:IMessage): Option[WhoIs] = {
-    opt.parse(str) match {
-      case Parsed.Success(value, _) => Some(WhoIs(imsg, value))
-      case _ =>
-        None
-    }
-  }
-}
-trait WhoJPTL extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val sendWhoFormat = jsonFormat18(WhoUser.apply)
-}
-object WhoJPTL extends WhoJPTL
-case class WhoUser(
-  id: String,
-  name: String,
-  first: String,
-  otherNames: Option[Set[String]],
-  email: String,
-  gender: Option[String],
-  avatar: Option[String],
-  loc: Option[String],
-  role: String,
-  team: Option[String],
-  dept: Option[String],
-  start: String,
-  manager: Option[String],
-  reports: Option[Seq[String]],
-  hipchatMention: Option[String],
-  gitHubUsername: Option[String],
-  linkedInId: Option[String],
-  contributor: Boolean
-)
 // trait WhoUserJPTL extends SprayJsonSupport with DefaultJsonProtocol {
 //   implicit val loveResultFormat = jsonFormat4(LoveResult.apply)
 //   implicit val loveListFormat = jsonFormat2(WhoUser.apply)

@@ -1,5 +1,6 @@
 package v2d2
 
+import scala.language.postfixOps
 import akka.actor.{ActorRef, Actor, ActorSystem, ActorContext, Props, ActorLogging}
 import akka.japi.Util.immutableSeq
 import akka.pattern.ask

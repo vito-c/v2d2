@@ -81,7 +81,7 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
             } else if (jk.state > 0) {
               log.info(s"snappy comeback")
               context.parent ! s"@${user.nick}, you do remember how knock knock jokes work?"
-            } else {
+            } else if (targets.nonEmpty) {
               log.info(s"snap two")
               context.parent ! s"@${user.nick}, shhh don't try to steal jokes..."
             }
@@ -100,11 +100,7 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
           case Some(user) =>
             val jk = targets.getOrElse(
               user.jid,
-              Joke(
-                target = user.jid,
-                state = 0,
-                sender = jid,
-                jokeIdx = Random.nextInt(clues.size)))
+              Joke(target = user.jid, state = 0, sender = jid, jokeIdx = 0))
             if (jk.state == 2) {
               context.parent ! s"@${user.nick}, ${answers(jk.jokeIdx)}"
               val jokeSender = jmap.getOrElse(jk.sender,
@@ -113,7 +109,7 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
               targets = targets - user.jid
             } else if (jk.state  > 0) {
               context.parent ! s"@${user.nick}, do you remember how knock knock jokes work?"
-            } else {
+            } else if (targets.nonEmpty) {
               context.parent ! s"@${user.nick}, shhh don't try to steal jokes..."
             }
           case _ => None

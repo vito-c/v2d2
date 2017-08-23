@@ -13,6 +13,12 @@ case class NickMap()
 case class ProfileRQ(jid: String)
 case class MakeRosterDirty()
 case class Ping()
+case class FindUser(
+  email: Option[String],
+  jid: Option[String],
+  name: Option[String],
+  nick: Option[String]
+)
 
 // case class Again(bang: Option[String], cmd: Option[String], imsg: IMessage)
 case class Again(cmd: Option[String], imsg: IMessage)

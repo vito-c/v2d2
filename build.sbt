@@ -22,6 +22,7 @@ libraryDependencies ++= Seq(
   "org.scalactic" %% "scalactic" % "2.2.6",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % akkaVersion,
+  // "com.typesafe.akka" %% "akka-http" % "10.0.9",
   "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
   "com.typesafe.akka" %% "akka-actor" % akkaVersion, // "2.3.12",
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
