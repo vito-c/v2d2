@@ -1,6 +1,8 @@
 package v2d2.actions.generic
 
 import v2d2.actions.generic.protocol._
+import v2d2.actions.love._
+import v2d2.actions.who._
 import org.scalatest._
 import akka.testkit.TestActorRef
 import v2d2.client._
@@ -15,6 +17,7 @@ class LoveSpec extends FlatSpec with Matchers {
       case _ => None
     }
   }
+
   def whoDoLoveAssert(whodo:Option[WhoDoLove], target: String) = {
     whodo should not be (None)
     whodo match {
@@ -232,5 +235,17 @@ class LoveSpec extends FlatSpec with Matchers {
   whoIsAssert("who is Someone Cool", "Someone Cool", "parse Someone Cool as the target")
   whoIsAssert("who is Someone Cool?", "Someone Cool", "parse Someone Cool as the target as question")
   whoIsAssert("who is Someone Cool ?", "Someone Cool", "parse Someone Cool as the target as question with space")
+  "who is it" should "parse none" in {
+    WhoIs("who is it", tmsg) should be (None)
+  }
+  "who is their" should "parse none" in {
+    WhoIs("who is their", tmsg) should be (None)
+  }
+  "who is there" should "parse none" in {
+    WhoIs("who is there", tmsg) should be (None)
+  }
+  "who is on call" should "parse none" in {
+    WhoIs("who is on call", tmsg) should be (None)
+  }
 
 }

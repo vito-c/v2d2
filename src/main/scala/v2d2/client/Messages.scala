@@ -113,6 +113,7 @@ class MUMessage(xmsg: Message, chat: MultiUserChat) extends XMessage(xmsg) with 
 //     text.rightAngleBracket();
 //     return this;
 // }
+case class XHTMLResponse(originalMsg: IMessage, response: XHTMLMemo)
 class XHTMLMemo(xhtml: XHTMLText = new XHTMLText(null, null)) {
 
   def notif() = {
@@ -124,17 +125,48 @@ class XHTMLMemo(xhtml: XHTMLText = new XHTMLText(null, null)) {
     ex
   }
 
+  def appedPreText(html: XHTMLText, text: String): XHTMLText = {
+    html.appendOpenParagraphTag("")
+    html.toXML()
+      .halfOpenElement("pre")
+      .rightAngleBracket()
+      .escape(text)
+      .closeElement("pre")
+    html.appendCloseParagraphTag()
+    html.appendCloseBodyTag();
+  }
+
+  def appendOpenPreTag(html: XHTMLText): XHTMLText = {
+    html.toXML()
+      .halfOpenElement("pre")
+      .rightAngleBracket()
+    html
+  }
+
+  def closePreTag(html:XHTMLText): XHTMLText = {
+    html.toXML().closeElement("pre")
+    html
+  }
+
   def dump() = {
-xhtml.appendOpenParagraphTag("font-size:large");
-xhtml.append("Hey John, this is my new ");
-xhtml.appendOpenSpanTag("color:green");
-xhtml.append("green");
-xhtml.appendCloseSpanTag();
-xhtml.appendOpenEmTag();
-xhtml.append("!!!!");
-xhtml.appendCloseEmTag();
-xhtml.appendCloseParagraphTag();
-xhtml.appendCloseBodyTag();
+    val xh = appedPreText(xhtml, "actual html")
+    println(s"xh: ${xh}")
+    xh
+
+// xhtml.appendOpenParagraphTag("font-size:large");
+// xhtml.append("my new test");
+// xhtml.appendCloseParagraphTag();
+// xhtml.appendCloseBodyTag();
+
+// xhtml.appendOpenSpanTag("color:green");
+// xhtml.append("green");
+// xhtml.appendCloseSpanTag();
+// xhtml.appendCloseSpanTag();
+// xhtml.appendOpenEmTag();
+// xhtml.append("!!!!");
+// xhtml.appendCloseEmTag();
+// xhtml.appendCloseParagraphTag();
+// xhtml.appendCloseBodyTag();
     // xhtml.toXML().
     //   openElement("p").
     //   escape("hello world").
@@ -142,3 +174,10 @@ xhtml.appendCloseBodyTag();
 	// xhtml.appendCloseBodyTag()
   } 
 }
+
+
+
+// [info] [INFO] [08/28/2017 00:07:03.133] [system-akka.actor.default-dispatcher-10] [akka://system/user/xmpp/1_spam_room@conf.btf.hipchat.com] 
+// <message id='2xl3o-1313'><body>hello world</body><html xmlns='http://jabber.org/protocol/xhtml-im'><body xmlns='http://www.w3.org/1999/xhtml'><p style='font-size:large'><span style='font-family:menlo'>Hey John, this is my new <span style='color:green'>green</span></span><em>!!!!</em></p></body></html></message>
+//
+// [info] 	xml: <message to='1_1821@chat.btf.hipchat.com/bot||proxy|hipchat.rallyhealth.com|5252' from='1_spam_room@conf.btf.hipchat.com/testtoken' type='groupchat'><body>&lt;pre&gt;test notif&lt;/pre&gt;</body><x xmlns='http://hipchat.com/protocol/muc#room'><message_format>html</message_format><color>purple</color><type>system</type><notify>0</notify></x><html xmlns='http://jabber.org/protocol/xhtml-im'><body xmlns='http://www.w3.org/1999/xhtml'><pre>test notif</pre></body></html></message>

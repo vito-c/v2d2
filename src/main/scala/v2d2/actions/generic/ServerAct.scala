@@ -27,7 +27,8 @@ import v2d2.actions.love.LoveJsonProtocol
 import v2d2.actions.love.LoveJsonProtocol._
 import v2d2.actions.generic.protocol._
 import v2d2.client.{IMessage,User}
-import v2d2.client.{XHTMLMemo}
+import v2d2.client.{XHTMLResponse,XHTMLMemo}
+import v2d2.actions.generic._
 import v2d2.client.core._
 import awscala._, ec2._
 import com.amazonaws.services.ec2.model.Filter
@@ -43,7 +44,7 @@ object Blah {
 		 state = aws.state)
   }
 }
-class ServerAct(muc: MultiUserChat) extends Actor with ActorLogging {
+class ServerAct extends Actor with ActorLogging {
   // implicit val ec2 = EC2.at(Region.US_EAST_1)
 
   // aws ec2 describe-instances --instance-ids "${id}" |
@@ -61,7 +62,8 @@ class ServerAct(muc: MultiUserChat) extends Actor with ActorLogging {
     case imsg: IMessage =>
       Server(imsg) match {
         case Some(server) =>
-		  context.parent ! new XHTMLMemo()
+          log.info("server match")
+		  // context.parent ! XHTMLResponse(imsg, new XHTMLMemo())
 		  // for { stuff <- Future { ec2.instances(Nil, List(
           //   new Filter().withName("tag-value").withValues("dev-yolo-api"))) }
  		  // } yield(

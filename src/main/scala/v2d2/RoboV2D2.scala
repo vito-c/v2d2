@@ -98,6 +98,14 @@ object V2D2 extends App with LoggerConfig {
     conf.getString(s"v2d2.sendlove.${prop}")
   }
 
+  def token(prop: String): String = {
+    creds.getString(s"creds.tokens.${prop}")
+  }
+
+  def pagerduty(prop: String): String = {
+    conf.getString(s"v2d2.pagerduty.${prop}")
+  }
+
   // _roster.setSubscriptionMode(Roster.SubscriptionMode.accept_all)
   // roster.addRosterListener(new RosterListener(){
   //   def entriesAdded(args: Collection[String]) = {

@@ -29,7 +29,11 @@ import v2d2.client.{IMessage,User}
 import v2d2.client.core._
 import v2d2.actions.generic.protocol.Response
 
-class WhoLoveAct extends Actor with ActorLogging with LoveListJPTL with LoveResultJPTL {
+class WhoLoveAct 
+  extends Actor 
+  with ActorLogging
+  with LoveListJPTL 
+  with LoveResultJPTL {
 
   import system.dispatcher
   implicit val system = ActorSystem()

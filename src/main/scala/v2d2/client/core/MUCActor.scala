@@ -1,5 +1,6 @@
 package v2d2.client.core
 
+import org.jivesoftware.smack.packet.DefaultExtensionElement
 import scala.collection.immutable.Queue
 import akka.actor.{Actor, ActorContext, Props, ActorLogging}
 import v2d2.actions.knock.Knocker
@@ -11,15 +12,18 @@ import org.jivesoftware.smack.{MessageListener,PresenceListener}
 import org.jivesoftware.smackx.muc.{MultiUserChatManager, DiscussionHistory, MultiUserChat}
 import org.jxmpp.util.XmppStringUtils
 import v2d2.V2D2
-import v2d2.client.{IMessage, XMessage, MUMessage, XHTMLMemo}
+import v2d2.client.{IMessage, XMessage, MUMessage, XHTMLMemo,XHTMLResponse}
 import v2d2.client.{Profile,ProfileIQ}
 import v2d2.actions.generic.protocol._
 import v2d2.actions.generic._
 import v2d2.actions.love._
+import v2d2.actions.who._
+import v2d2.actions.pager._
 import org.jivesoftware.smackx.xhtmlim.XHTMLManager
 
 class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor with ActorLogging {
 
+  val notifs = context.actorOf(Props(classOf[HipChatNotifs]), name = "hipchatnotifs")// + muc.getRoom() )
   // non breaking space: \u2002
   override def preStart = {
     val history = new DiscussionHistory()
@@ -30,9 +34,11 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
     context.actorOf(Props(classOf[NailedIt]), name = "nailed")// + muc.getRoom() )
     context.actorOf(Props(classOf[Help]), name = "help")// + muc.getRoom() )
     context.actorOf(Props(classOf[Knocker], muc), name = "knocker")// + muc.getRoom() )
-    // context.actorOf(Props(classOf[LoveAct], muc), name = "lover")// + muc.getRoom() )
+    context.actorOf(Props(classOf[PagerAct]), name = "pager")// + muc.getRoom() )
+    context.actorOf(Props(classOf[LoveAct], muc), name = "lover")// + muc.getRoom() )
     context.actorOf(Props(classOf[WhoLoveAct]), name = "wholove")// + muc.getRoom() )
-    context.actorOf(Props(classOf[ServerAct], muc), name = "server")// + muc.getRoom() )
+    context.actorOf(Props(classOf[WhoAct]), name = "whois")// + muc.getRoom() )
+    context.actorOf(Props(classOf[ServerAct]), name = "server")// + muc.getRoom() )
     context.actorOf(Props(classOf[HistoryAct], muc), name = "history")// + muc.getRoom() )
 
     muc.addParticipantListener(new PresenceListener() {
@@ -91,14 +97,39 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
       log.info(s"send history ${h.again}")
       sender ! History(Some(_history), h.again)
 
+    case h: HipNotif =>
+      notifs ! h
+
     case Response(imsg, response) =>
       muc.sendMessage(response)
     case str: String =>
       muc.sendMessage(str)
+
+    case xhr: XHTMLResponse =>
+      val xh = xhr.response
+      val msg = new Message()
+      // msg.setBody("hello world")
+      msg.setBody("&lt;pre&gt;test notif&lt;/pre&gt;")
+      val hipHtml = new DefaultExtensionElement("x", "http://hipchat.com/protocol/muc#room")
+        hipHtml.setValue("message_format", "html")
+        hipHtml.setValue("color","purple")
+        hipHtml.setValue("type","system")
+        hipHtml.setValue("notify","0")
+      msg.addExtension(hipHtml)
+      val xhtmlBody = xh.dump()
+      // self ! s"html ${xhtmlBody}"
+      // Add the XHTML text to the message
+      // msg.addExtension(xh.notif())
+      XHTMLManager.addBody(msg, xhtmlBody);
+      // Send the message that contains the XHTML
+      // self ! s"msg ${msg}"
+      log.info(s"BEFORE SENDING: ${msg}")
+      muc.sendMessage(msg);
+      
     case xh: XHTMLMemo =>
       val msg = new Message()
       // msg.setBody("hello world")
-      msg.setBody("hello world")
+      msg.setBody("&lt;pre&gt;test notif&lt;/pre&gt;")
       val xhtmlBody = xh.dump()
       // self ! s"html ${xhtmlBody}"
       // Add the XHTML text to the message
@@ -108,6 +139,7 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
       // Send the message that contains the XHTML
       // self ! s"msg ${msg}"
       muc.sendMessage(msg);
+
     case a:Any =>
       self ! s"sorry dave I just can't do that ${a}"
     case _ =>

@@ -61,7 +61,7 @@ trait LoveListJPTL extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val loveListFormat = jsonFormat2(LoveList.apply)
 }
 object LoveListJPTL extends LoveListJPTL
-case class LoveList( sent: Seq[LoveResult], received: Seq[LoveResult] )
+case class LoveList(sent: Seq[LoveResult], received: Seq[LoveResult])
 
 case class Love(targets: Seq[String], reason: Option[String])
 object Love extends BotCombinators {
@@ -140,8 +140,7 @@ object WhoLove extends BotCombinators {
   def apply(str: String, imsg:IMessage): Option[WhoLove] = {
     opt.parse(str) match {
       case Parsed.Success(value, _) => Some(WhoLove(imsg, value))
-      case _ =>
-        None
+      case _ => None
     }
   }
 }

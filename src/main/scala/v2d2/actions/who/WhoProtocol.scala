@@ -34,7 +34,14 @@ object WhoIs extends BotCombinators {
 
   def apply(str: String, imsg:IMessage): Option[WhoIs] = {
     opt.parse(str) match {
-      case Parsed.Success(value, _) => Some(WhoIs(imsg, value))
+      case Parsed.Success(value, _) => 
+        value.toLowerCase() match {
+          case "there" => None
+          case "their" => None
+          case "it" => None
+          case "on call" => None
+          case _ => Some(WhoIs(imsg, value))
+        }
       case _ =>
         None
     }

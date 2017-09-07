@@ -1,6 +1,5 @@
 package v2d2.client.core
 
-import org.jxmpp.util.XmppStringUtils
 import akka.actor.{ActorRef, Actor, ActorSystem, ActorContext, Props, ActorLogging}
 import akka.http.scaladsl.model._
 import akka.japi.Util.immutableSeq
@@ -10,29 +9,32 @@ import akka.util.Timeout
 import collection.JavaConversions._
 import concurrent.{Future, Promise}
 import java.util.Collection
-import v2d2.actions.knock.Knocker
-import v2d2.actions.generic.protocol._
-import v2d2.actions.generic._
-import v2d2.actions.love._
 import org.jivesoftware.smack.StanzaListener
 import org.jivesoftware.smack.chat.{ChatMessageListener, ChatManager, ChatManagerListener, Chat}
 import org.jivesoftware.smack.packet.{Stanza, Presence, Message}
 import org.jivesoftware.smack.roster.{RosterListener,Roster,RosterEntry,RosterLoadedListener}
 import org.jivesoftware.smack.tcp.{XMPPTCPConnectionConfiguration, XMPPTCPConnection}
-import org.jivesoftware.smackx.muc.{MultiUserChatManager, MultiUserChat}
+import org.jivesoftware.smack.{MessageListener,PresenceListener}
 import org.jivesoftware.smackx.muc.{Affiliate, Occupant}
+import org.jivesoftware.smackx.muc.{MultiUserChatManager, MultiUserChat}
+import org.jivesoftware.smackx.ping.PingManager
+import org.jivesoftware.smackx.xhtmlim.XHTMLManager
+import org.jxmpp.util.XmppStringUtils
 import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 import scala.util.{Success, Failure}
-import v2d2.client.{Profile,ProfileIQ,User}
-import org.jivesoftware.smack.{MessageListener,PresenceListener}
 import v2d2.V2D2
-import org.jivesoftware.smackx.ping.PingManager
-import org.jivesoftware.smackx.xhtmlim.XHTMLManager
-import v2d2.client._
+import v2d2.actions.generic._
 import v2d2.actions.generic.protocol._
+import v2d2.actions.generic.protocol._
+import v2d2.actions.knock.Knocker
+import v2d2.actions.who._
+import v2d2.actions.pager._
+import v2d2.actions.love._
+import v2d2.client._
+import v2d2.client.{Profile,ProfileIQ,User}
 
 class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
 
@@ -56,6 +58,9 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
     // context.actorOf(Props(classOf[Knocker], muc), name = "knocker")// + muc.getRoom() )
     // context.actorOf(Props(classOf[LoveAct], muc), name = "cmd:lover")// + muc.getRoom() )
     context.actorOf(Props(classOf[WhoLoveAct]), name = "cmd:wholove")// + muc.getRoom() )
+    context.actorOf(Props(classOf[WhoAct]), name = "cmd:whois")// + muc.getRoom() )
+    context.actorOf(Props(classOf[PagerAct]), name = "cmd:pager")// + muc.getRoom() )
+    context.actorOf(Props(classOf[ServerAct]), name = "cmd:server")// + muc.getRoom() )
     // context.actorOf(Props(classOf[ServerAct], muc), name = "server")// + muc.getRoom() )
     // context.actorOf(Props(classOf[HistoryAct], muc), name = "history")// + muc.getRoom() )
     // _rosterLoading = true
@@ -127,6 +132,24 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
         if(child.path.name.matches("cmd:.*"))
           child ! imsg 
       }
+
+    case xhr: XHTMLResponse =>
+      val xh = xhr.response
+      val msg = new Message()
+      msg.setBody("&lt;pre&gt;test notif&lt;/pre&gt;")
+      // msg.setBody("this is a test")
+      val xhtmlBody = xh.dump()
+      // self ! s"html ${xhtmlBody}"
+      // Add the XHTML text to the message
+      // msg.addExtension(xh.notif())
+      XHTMLManager.addBody(msg, xhtmlBody);
+// <x xmlns='http://hipchat.com/protocol/muc#room'>
+// <message_format>html</message_format><color>purple</color><type>system</type><notify>0</notify></x>
+      log.info(s"${msg}")
+      // Send the message that contains the XHTML
+      // self ! s"msg ${msg}"
+      ChatManager.getInstanceFor(connection)
+        .createChat(xhr.originalMsg.fromJid).sendMessage(msg)
 
     case p: Ping =>
 	  PingManager.getInstanceFor(connection).pingMyServer();
