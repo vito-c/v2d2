@@ -9,6 +9,8 @@ import org.jivesoftware.smack.packet.Stanza
 import org.jivesoftware.smack.packet.{Presence, Message}
 import org.jivesoftware.smack.tcp.{XMPPTCPConnectionConfiguration, XMPPTCPConnection}
 import org.jivesoftware.smack.{MessageListener,PresenceListener}
+import v2d2.mtg.MagicAct
+import v2d2.mtg._
 import org.jivesoftware.smackx.muc.{MultiUserChatManager, DiscussionHistory, MultiUserChat}
 import org.jxmpp.util.XmppStringUtils
 import v2d2.V2D2
@@ -40,6 +42,7 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
     context.actorOf(Props(classOf[WhoAct]), name = "whois")// + muc.getRoom() )
     context.actorOf(Props(classOf[ServerAct]), name = "server")// + muc.getRoom() )
     context.actorOf(Props(classOf[HistoryAct], muc), name = "history")// + muc.getRoom() )
+    context.actorOf(Props(classOf[MagicAct]), name = "magic")// + muc.getRoom() )
 
     muc.addParticipantListener(new PresenceListener() {
       override def processPresence(presence: Presence) = {

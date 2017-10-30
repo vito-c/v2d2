@@ -1,24 +1,17 @@
 package v2d2.actions.generic
 
-import v2d2.actions.generic.protocol.Response
-import scala.util.{Success, Failure}
-import v2d2.client.IMessage
-import akka.actor.{ActorRef, Actor, ActorSystem, ActorContext, Props, ActorLogging}
-import akka.actor.{Actor, ActorContext, Props, ActorLogging}
-import akka.stream.ActorMaterializer
 import scala.concurrent.duration._
-import akka.util.Timeout
+import scala.util.{Failure, Success}
+
+import akka.actor.{Actor, ActorLogging, ActorSystem}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import scala.util.Random
-import v2d2.actions.generic.protocol.Helpme
-import spray.client.pipelining._
-import spray.httpx.SprayJsonSupport._
-import spray.json._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.stream.ActorMaterializer
+import akka.util.Timeout
+import spray.json.DefaultJsonProtocol
 
 // API=https://hipchat.rallyhealth.com/v2
 // AUTH_TOKEN=96nHrRVzKRXJsccjHuNS6K6X8WNmJrafF8TVpY70
@@ -57,7 +50,7 @@ class HipChatNotifs extends Actor with ActorLogging with HipNotifProtocol{
       } yield entity
       content onComplete {
         case Success(data) =>
-          log.info("Notification has been sent")
+          log.info(s"Notification has been sent ${data}")
         case Failure(t) =>
           log.info(s"An error has occured: " + t.getMessage)
       }

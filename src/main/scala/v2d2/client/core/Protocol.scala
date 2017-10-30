@@ -4,6 +4,7 @@ import v2d2.parsers.{Blackspace,BotCombinators}
 import v2d2.client.IMessage
 import scala.collection.immutable.Queue
 
+case class MagicCards()
 case class JoinRoom(room: String, chatpass: Option[String])
 case class RosterList()
 case class UserList()

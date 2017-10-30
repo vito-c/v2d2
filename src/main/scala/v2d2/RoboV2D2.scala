@@ -42,8 +42,11 @@ import scala.util.{Success, Failure}
 import v2d2.client.core.{XMPPActor, JoinRoom}
 import v2d2.client.{Profile,ProfileProvider,ProfileIQ,User}
 import v2d2.client.core.Ping
+import v2d2.mtg.CardProtocol
 
-object V2D2 extends App with LoggerConfig {
+object V2D2 
+  extends App 
+  with LoggerConfig {
 
   // Use the system’s dispatcher as ExecutionContext
   import system.dispatcher
@@ -143,7 +146,6 @@ object V2D2 extends App with LoggerConfig {
 
   // user logged on now add listeners
   ProviderManager.addIQProvider(ProfileIQ.ELEMENT, ProfileIQ.NAMESPACE, new ProfileProvider())
-
 
   val xactor = system.actorOf(
     Props(classOf[XMPPActor], _connection),

@@ -1,42 +1,42 @@
 package v2d2.client.core
 
-import akka.actor.{ActorRef, Actor, ActorSystem, ActorContext, Props, ActorLogging}
-import akka.http.scaladsl.model._
-import akka.japi.Util.immutableSeq
+import java.util.Collection
+
+import scala.collection.JavaConverters._
+import scala.collection.immutable
+import scala.concurrent.{Future, Promise}
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
+
+import akka.actor.{Actor, ActorContext, ActorLogging, ActorSystem, Props}
 import akka.pattern.{ask, pipe}
 import akka.stream.ActorMaterializer
+import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.util.Timeout
-import collection.JavaConversions._
-import concurrent.{Future, Promise}
-import java.util.Collection
 import org.jivesoftware.smack.StanzaListener
-import org.jivesoftware.smack.chat.{ChatMessageListener, ChatManager, ChatManagerListener, Chat}
-import org.jivesoftware.smack.packet.{Stanza, Presence, Message}
-import org.jivesoftware.smack.roster.{RosterListener,Roster,RosterEntry,RosterLoadedListener}
-import org.jivesoftware.smack.tcp.{XMPPTCPConnectionConfiguration, XMPPTCPConnection}
-import org.jivesoftware.smack.{MessageListener,PresenceListener}
-import org.jivesoftware.smackx.muc.{Affiliate, Occupant}
-import org.jivesoftware.smackx.muc.{MultiUserChatManager, MultiUserChat}
+import org.jivesoftware.smack.chat.{Chat, ChatManager, ChatManagerListener, ChatMessageListener}
+import org.jivesoftware.smack.packet.{Message, Presence, Stanza}
+import org.jivesoftware.smack.roster.{Roster, RosterEntry, RosterListener}
+import org.jivesoftware.smack.tcp.XMPPTCPConnection
+import org.jivesoftware.smackx.muc.MultiUserChatManager
 import org.jivesoftware.smackx.ping.PingManager
 import org.jivesoftware.smackx.xhtmlim.XHTMLManager
 import org.jxmpp.util.XmppStringUtils
-import scala.collection.JavaConverters._
-import scala.collection.immutable
-import scala.concurrent.duration._
-import scala.util.control.NonFatal
-import scala.util.{Success, Failure}
 import v2d2.V2D2
 import v2d2.actions.generic._
 import v2d2.actions.generic.protocol._
-import v2d2.actions.generic.protocol._
-import v2d2.actions.knock.Knocker
-import v2d2.actions.who._
-import v2d2.actions.pager._
 import v2d2.actions.love._
+import v2d2.actions.pager._
+import v2d2.mtg.MagicAct
+import v2d2.actions.who._
 import v2d2.client._
-import v2d2.client.{Profile,ProfileIQ,User}
+import v2d2.mtg._
+import java.io.InputStream
 
-class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
+class XMPPActor(connection: XMPPTCPConnection) 
+extends Actor 
+with ActorLogging 
+with CardSetProtocol {
 
   import system.dispatcher
   implicit val system = ActorSystem()
@@ -51,7 +51,9 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
   private var _rosterLoading = false
   private var _rosterCache: List[RosterEntry] = Nil
 
+
   override def preStart = {
+
     context.actorOf(Props(classOf[Quitter]), name = "cmd:quit")// + muc.getRoom() )
     context.actorOf(Props(classOf[NailedIt]), name = "cmd:nailed")// + muc.getRoom() )
     context.actorOf(Props(classOf[Help]), name = "cmd:help")// + muc.getRoom() )
@@ -61,6 +63,7 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
     context.actorOf(Props(classOf[WhoAct]), name = "cmd:whois")// + muc.getRoom() )
     context.actorOf(Props(classOf[PagerAct]), name = "cmd:pager")// + muc.getRoom() )
     context.actorOf(Props(classOf[ServerAct]), name = "cmd:server")// + muc.getRoom() )
+    context.actorOf(Props(classOf[MagicAct]), name = "cmd:magic")// + muc.getRoom() )
     // context.actorOf(Props(classOf[ServerAct], muc), name = "server")// + muc.getRoom() )
     // context.actorOf(Props(classOf[HistoryAct], muc), name = "history")// + muc.getRoom() )
     // _rosterLoading = true
@@ -182,6 +185,7 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
           jid      = entry.getUser(),
           nick     = profile.mention_name,
           email    = profile.email,
+          timezone = Timezone(profile.timezone, profile.offset),
           entry    = entry
       ) )
       req pipeTo sender
@@ -228,16 +232,31 @@ class XMPPActor(connection: XMPPTCPConnection) extends Actor with ActorLogging {
           context.parent ! "An error has occured: " + t.getMessage
       }
 
-      case FindUser(Some(email), _, _, _) => None
-        for {
+      case FindUser(Some(email), _, _, _) =>
+        log.info(s"email: $email")
+        val con = for {
           emap <- (self ? EmailMap()).mapTo[Map[String,User]]
+          // user <- (emap.get(email)).asInstanceOf[Option[User]]
         } yield(
-          emap get (email) match {
-            case Some(user) => sender ! user
-            case _ => sender ! None
-          }
-        ) 
+          // log.info(s"\n\temail: $email \n\tuser: ${emap.get(email)}")
+          emap.get(email)
+          // match {
+          //   case Some(user) => 
+          //     pprint.log(user, "user")
+          //     sender ! user
+          //   case _ => 
+          //     log.info("FAILED")
+          // }
+        ) //pipeTo sender
+        con pipeTo sender
 
+        // con onComplete {
+        //   case Success(emap) =>
+        //     sender ! emap.get(email)
+        //   case Failure(t) =>
+        //     log.info(s"FAILED: ${t.getMessage}")
+        // }
+        //
       case FindUser(_, Some(jid), _, _) => None
         for {
           jmap <- (self ? UserMap()).mapTo[Map[String,User]]

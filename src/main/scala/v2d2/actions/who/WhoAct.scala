@@ -1,33 +1,22 @@
 package v2d2.actions.who
 
-import org.apache.commons.lang3.StringUtils
-import akka.actor.{ActorRef, Actor, ActorSystem, ActorContext, Props, ActorLogging}
+import scala.collection.immutable
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
+
+import akka.actor.{Actor, ActorContext, ActorLogging, ActorSystem}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.pattern.{ask, pipe}
+import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import collection.JavaConversions._
-import concurrent.Future
-import concurrent.Promise
-import java.util.Collection
-import org.jivesoftware.smackx.muc.MultiUserChat
-import org.jxmpp.util.XmppStringUtils
-import scala.collection.immutable
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.util.{Success, Failure}
-import spray.client.pipelining._
-import spray.httpx.SprayJsonSupport._
-import spray.httpx.encoding.{Gzip, Deflate}
-import spray.httpx.unmarshalling.FromResponseUnmarshaller
-
+import org.apache.commons.lang3.StringUtils
 import v2d2.V2D2
-import v2d2.client.{IMessage,User}
-import v2d2.client.core._
 import v2d2.actions.generic.protocol.Response
+import v2d2.client.{IMessage, User}
+import v2d2.client.core._
 
 class WhoAct extends Actor with ActorLogging with WhoJPTL {
 
@@ -69,7 +58,8 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
       p.first.equalsIgnoreCase(search) ||
       p.last.equalsIgnoreCase(search) ||
       p.name.equalsIgnoreCase(search) || 
-      p.gitHubUsername.getOrElse("").equalsIgnoreCase(search)) match {
+      p.gitHubUsername.getOrElse("").equalsIgnoreCase(search)
+    ) match {
         case Nil =>
           log.info("in lookup NIL")
           search match {
@@ -158,6 +148,7 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
           context.parent ! Response(who.imsg, s"An error has occured: " + t.getMessage)
       }
 
+    // Loop back
     case imsg: IMessage =>
       WhoIs(imsg) match {
         case Some(who) =>

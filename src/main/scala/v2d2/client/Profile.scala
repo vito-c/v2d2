@@ -56,7 +56,9 @@ object ProfileIQ {
     photo_large: String,
     photo_small: String,
     title: String,
-    email: String
+    email: String,
+    timezone: String,
+    offset: Double
   ) = new SimpleIQ(ELEMENT, NAMESPACE) with IProfile
 }
 
@@ -66,7 +68,9 @@ case class Profile(
   photo_large: String,
   photo_small: String,
   title: String,
-  email: String
+  email: String,
+  timezone: String,
+  offset: Double
 )
 object Profile {
   def apply(iq: ProfileIQ): Profile = {
@@ -76,7 +80,10 @@ object Profile {
       iq.photo_large,
       iq.photo_small,
       iq.title,
-      iq.email)
+      iq.email,
+      iq.timezone,
+      iq.offset
+    )
   }
 }
 
@@ -86,7 +93,9 @@ class ProfileIQ(
   photo_large: String,
   photo_small: String,
   title: String,
-  email: String
+  email: String,
+  timezone: String,
+  offset: Double
 ) extends SimpleIQ(ProfileIQ.ELEMENT, ProfileIQ.NAMESPACE) with IProfile {
   def mention_name(): String = mention_name
   def name(): String = name
@@ -94,6 +103,8 @@ class ProfileIQ(
   def photo_small(): String = photo_small
   def title(): String = title
   def email(): String = email
+  def timezone(): String = timezone
+  def offset(): Double = offset
 }
 
 
@@ -123,44 +134,52 @@ class ProfileProvider extends IQProvider[ProfileIQ] {
       var photo_small : String = ""
       var title       : String = ""
       var email       : String = ""
+      var timezone    : String = ""
+      var offset       : Double = 0.0d
 
       @tailrec
       def iterator():Unit = {
         val tag = parser.next()
         // println(s"tag: ${tag}")
         tag match {
-          case XmlPullParser.START_TAG =>
+          case XmlPullParser.START_TAG => 
             val node = parser.getName()
             // println(s"node: ${node}")
             node match {
               case "mention_name" =>
-              mention_name = parser.nextText()
-              // println(s"mention_name: ${mention_name}")
-              iterator()
+                mention_name = parser.nextText()
+                // println(s"mention_name: ${mention_name}")
+                iterator()
               case "name" =>
-              name = parser.nextText()
-              // println(s"name: ${name}")
-              iterator()
+                name = parser.nextText()
+                // println(s"name: ${name}")
+                iterator()
               case "photo_large" =>
-              photo_large = parser.nextText()
-              // println(s"photo_large: ${photo_large}")
-              iterator()
+                photo_large = parser.nextText()
+                // println(s"photo_large: ${photo_large}")
+                iterator()
               case "photo_small" =>
-              photo_small = parser.nextText()
-              // println(s"photo_small: ${photo_small}")
-              iterator()
+                photo_small = parser.nextText()
+                // println(s"photo_small: ${photo_small}")
+                iterator()
               case "title" =>
-              title = parser.nextText()
-              // println(s"title: ${title}")
-              iterator()
+                title = parser.nextText()
+                // println(s"title: ${title}")
+                iterator()
               case "email" =>
-              email = parser.nextText()
-              // println(s"email: ${email}")
-              iterator()
+                email = parser.nextText()
+                // println(s"email: ${email}")
+                iterator()
+              case "timezone" =>
+                offset = parser.getAttributeValue(null, "utc_offset").toFloat
+                timezone = parser.nextText()
+                // println(s"offset $offset")
+                // println(s"timezone: ${timezone}")
+                iterator()
               case _ =>
-              val skip = parser.nextText()
-              // println(s"skipping: ${parser.nextText()}")
-              iterator()
+                val skip = parser.nextText()
+                // println(s"skipping: ${parser.nextText()}")
+                iterator()
             }
           case XmlPullParser.END_TAG =>
             if (parser.getDepth() != initialDepth) {
@@ -180,7 +199,9 @@ class ProfileProvider extends IQProvider[ProfileIQ] {
       photo_large  = photo_large,
       photo_small  = photo_small,
       title        = title,
-      email        = email
+      email        = email,
+      timezone     = timezone,
+      offset       = offset
     )
   }
 }

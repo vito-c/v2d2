@@ -1,9 +1,10 @@
 package v2d2.actions.generic
 
-import v2d2.client.IMessage
-import akka.actor.{Actor, ActorContext, Props, ActorLogging}
 import scala.util.Random
+
+import akka.actor.{Actor, ActorContext, ActorLogging}
 import v2d2.actions.generic.protocol.Helpme
+import v2d2.client.IMessage
 
 class Help extends Actor with ActorLogging {
 
