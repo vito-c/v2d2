@@ -80,6 +80,8 @@ with CardSetProtocol {
       content onComplete {
         case Success(cards) =>
           val results = lookupName(cs.target.toLowerCase(), cards)
+          // if (scores(results.head.name, cs.target.toLowerCase())) {
+          // }
           val uri = "https://magiccards.info/scans/en/"
           val imgs = results collect {
             case c if(c.number != None && c.setKey != None) => c
@@ -97,7 +99,6 @@ with CardSetProtocol {
           } else {
             log.info("send many")
             val h = if(imgs.size>4) 256 else 321
-            val w = if(imgs.size>4) 179 else 225
 
             val tds = imgs.map( e => 
                 s"""<td><img src="${e._1}" height="${h}"</td>""".stripMargin)
@@ -108,6 +109,8 @@ with CardSetProtocol {
               else if ( j % 4 > 1 ) { td }
               else td
             }
+
+            val o = s"<table>${body.mkString("")}</table>"
 
             context.parent ! HipNotif("gray","html",o)
             if (false) { //TODO: keep this so you can add text request
