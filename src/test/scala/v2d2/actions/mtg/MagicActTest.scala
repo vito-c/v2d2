@@ -5,7 +5,7 @@ import v2d2.actions.generic.HipNotif
 import v2d2.actions.generic.protocol.Response
 import akka.testkit.{ ImplicitSender, TestActorRef, TestActors, TestKit }
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
-import v2d2.client.{IMessage, User}
+import v2d2.client.{IMessage}
 import v2d2.client.core.MagicCards
 import akka.actor.{Actor, ActorContext, ActorLogging, ActorSystem, Props}
 import akka.pattern.{ask, pipe}
@@ -32,26 +32,35 @@ with BeforeAndAfterAll {
   import system.dispatcher
   implicit val timeout = Timeout(25.seconds)
 
-  class TMessage extends IMessage {
-    override def content: String = { "card name is sun's avatar?" }
+  case class TMsgData(content:String)
+  class TMessage(data: TMsgData) extends IMessage {
+    override def content: String = { data.content }
   }
 
   val testData = Map( 
     "a" -> TCardSet(
       name = "a",
       cards = List(
-        TCard(name="sun"),
-        TCard(name="fun"),
-        TCard(name="gun"),
-        TCard(name="poo poo sun avatar xxxxxxxxx"),
-        TCard(name="yun")
+        TCard(name="sun", text=Some("sun")),
+        TCard(name="fab lab", text=Some("fab lab")),
+        TCard(name="gun", text=Some("gun")),
+        TCard(name="xxxx sun avatar xxxx", text=Some("xxxx sun avatar xxxx")),
+        TCard(name="yun", text=Some("yun"))
       )),
   "b" -> TCardSet(
     name = "b",
-    cards = List(TCard(name="sun doo"))),
+    cards = List(
+      TCard(name="sun doo", text=Some("sun doo")),
+      TCard(name="fab lab", text=Some("fab lab")),
+      TCard(name="gun", text=Some("gun"))
+    )),
   "c" -> TCardSet(
     name = "c",
-    cards = List(TCard(name="sun poo")))
+    cards = List(
+      TCard(name="sun boo", text=Some("sun boo")),
+      TCard(name="fab lab", text=Some("fab lab")),
+      TCard(name="gun", text=Some("gun"))
+    ))
   )
 
   override def afterAll {
@@ -76,7 +85,7 @@ with BeforeAndAfterAll {
       assert(content.isCompleted)
     }
     
-    "list scores correctly punct" in {
+    "list scores correctly search w/o punctuation" in {
       val actorRef = TestActorRef[MagicAct]
       val magic = actorRef.underlyingActor
       val s1 = magic.scores("the fox's fur", "fox's")
@@ -106,7 +115,22 @@ with BeforeAndAfterAll {
       val s = magic.lookupName("yun", testData)
       assert(s.size == 1)
       assert(s.head.name == "yun")
-      // assert(s.head == 0)
+    }
+
+    "list best match for card grouped on unique name" in {
+      val actorRef = TestActorRef[MagicAct]
+      val magic = actorRef.underlyingActor
+      val s = magic.lookupName("gun", testData)
+      assert(s.size == 1)
+      assert(s.head.name == "gun")
+    }
+
+    "list best match for card grouped on unique name not exact" in {
+      val actorRef = TestActorRef[MagicAct]
+      val magic = actorRef.underlyingActor
+      val s = magic.lookupName("gab lab", testData)
+      assert(s.size == 1)
+      assert(s.head.name == "fab lab")
     }
 
     "list best match for card with test data" in {
@@ -114,12 +138,13 @@ with BeforeAndAfterAll {
       val magic = actorRef.underlyingActor
       val s = magic.lookupName("sun avatar", testData)
       assert(s.size == 1)
-      assert(s.head.name == "poo poo sun avatar xxxxxxxxx")
+      assert(s.head.name == "xxxx sun avatar xxxx")
     }
 
     "list best match for card with real data" in {
       val proxy = TestProbe()
-      val tmsg: IMessage = new TMessage()
+      val tmsg: IMessage = new TMessage(TMsgData("card name is sun's avatar?"))
+
       val cs = CardNameSearch(tmsg, "sun's avatar")
       val parent = system.actorOf(Props(new Actor {
         val child = context.actorOf(Props(classOf[MagicAct]), "child")
@@ -142,7 +167,99 @@ with BeforeAndAfterAll {
       }))
 
       proxy.send(parent, tmsg)
-      proxy.receiveN(4, 8.seconds)
+      proxy.receiveN(1, 8.seconds)
+    }
+
+    "list best match for card with real data validate table lee swamp" in {
+      val proxy = TestProbe()
+      val tmsg: IMessage = new TMessage(TMsgData("card name is lee swamp?"))
+      val cs = CardNameSearch(tmsg, "lee swamp")
+      val parent = system.actorOf(Props(new Actor {
+        val child = context.actorOf(Props(classOf[MagicAct]), "child")
+        def receive = {
+          case x if sender == child => 
+            x match  {
+              case r:Response =>
+                println("==========================")
+                println(r)
+                println("==========================")
+              case a:HipNotif =>
+                println("==========================")
+                println(a)
+                val e = HipNotif("gray","html",
+                  """<table><tr>
+                    |<td><img src="https://magiccards.info/scans/en/m12/238.jpg" height="321"</td>
+                    |<td><img src="https://magiccards.info/scans/en/ddr/65.jpg" height="321"</td>
+                    |<td><img src="https://magiccards.info/scans/en/me2/243.jpg" height="321"</td>
+                 |</tr></table>""".stripMargin.replaceAll("\n", ""))
+                assert(e.toString == a.toString)
+                println("==========================")
+              case _ => assert(false)
+            }
+            proxy.ref forward x
+          case x => child forward x
+        }
+      }))
+
+      proxy.send(parent, tmsg)
+      proxy.receiveN(1, 8.seconds)
+    }
+
+    "list best match for card with real data validate table sun" in {
+      val proxy = TestProbe()
+      val tmsg: IMessage = new TMessage(TMsgData("card name is sun?"))
+      val cs = CardNameSearch(tmsg, "sun")
+      val parent = system.actorOf(Props(new Actor {
+        val child = context.actorOf(Props(classOf[MagicAct]), "child")
+        def receive = {
+          case x if sender == child => 
+            x match  {
+              case r:Response =>
+                println("==========================")
+                println(r)
+                println("==========================")
+              case a:HipNotif =>
+                println("==========================")
+                println(a)
+                val e = HipNotif("gray","html",
+                  """<table>
+                      |<tr>
+                        |<td><img src="https://magiccards.info/scans/en/ths/17.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/c13/261.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/xln/191b.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/m12/39.jpg" height="256"</td>
+                      |</tr>
+                      |<tr>
+                        |<td><img src="https://magiccards.info/scans/en/bng/13.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/v11/12.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/shm/243.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/xln/27.jpg" height="256"</td>
+                      |</tr>
+                      |<tr>
+                        |<td><img src="https://magiccards.info/scans/en/akh/4.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/c14/233.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/bng/22.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/me3/52.jpg" height="256"</td>
+                      |</tr>
+                      |<tr>
+                        |<td><img src="https://magiccards.info/scans/en/ptk/45.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/gpt/109.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/m14/222.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/mrd/194.jpg" height="256"</td>
+                     |</tr>
+                  |</table>"""
+                  .stripMargin.replaceAll("\n", ""))
+                assert(e.toString == a.toString)
+                println("==========================")
+              case _ => assert(false)
+            }
+            proxy.ref forward x
+          case x => child forward x
+        }
+      }))
+
+      proxy.send(parent, tmsg)
+      proxy.receiveN(1, 8.seconds)
     }
   }
 }

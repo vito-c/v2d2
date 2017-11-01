@@ -20,3 +20,6 @@ creds {
   user = "12345_1234567"
   ...
 }
+
+cards available here:
+https://mtgjson.com/json/AllSets.json.zip

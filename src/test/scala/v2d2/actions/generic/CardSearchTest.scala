@@ -16,7 +16,7 @@ import akka.actor.{Actor, ActorContext, ActorLogging, ActorSystem, Props}
 import akka.stream.ActorMaterializer
 import scala.concurrent.duration._
 
-class CardSearchSpec 
+class CardNameSearchSpec 
 extends FlatSpec 
 with Matchers
 with CardSetProtocol {
@@ -26,7 +26,7 @@ with CardSetProtocol {
   implicit val timeout = Timeout(25.seconds)
 
   val tmsg: IMessage = new EMessage()
-  // Testing WhoIs case class for love
+  // Testing CardNameSearch case class for love
   // example: who is tough.guy?
   def cardSearchAssert(
     input: String, 
