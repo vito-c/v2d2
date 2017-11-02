@@ -170,6 +170,66 @@ with BeforeAndAfterAll {
       proxy.receiveN(1, 8.seconds)
     }
 
+    "list best match for card with real data validate no results stub" in {
+      val proxy = TestProbe()
+      val tmsg: IMessage = new TMessage(TMsgData("card name is zc?"))
+      val cs = CardNameSearch(tmsg, "zc")
+      val parent = system.actorOf(Props(new Actor {
+        val child = context.actorOf(Props(classOf[MagicAct]), "child")
+        def receive = {
+          case x if sender == child => 
+            x match  {
+              case r:Response =>
+                println("==========================")
+                assert(r == Response(tmsg, "Try asking again with a longer string"))
+                println("==========================")
+              case a:HipNotif =>
+                println("==========================")
+                assert(false)
+                println("==========================")
+              case _ => assert(false)
+            }
+            proxy.ref forward x
+          case x => child forward x
+        }
+      }))
+
+      proxy.send(parent, tmsg)
+      proxy.receiveN(1, 8.seconds)
+    }
+
+    "list best match for card with real data validate no results bad match" in {
+      val proxy = TestProbe()
+      val res = "Scuzzback Scrapper"
+      val src = "zcxzzzzzzzzz"
+      val tlen  = src.length
+      val pcent = (tlen - 9).toFloat/tlen
+      val tmsg: IMessage = new TMessage(TMsgData(s"card name is ${src}?"))
+      val cs = CardNameSearch(tmsg, s"${src}")
+      val parent = system.actorOf(Props(new Actor {
+        val child = context.actorOf(Props(classOf[MagicAct]), "child")
+        def receive = {
+          case x if sender == child => 
+            x match  {
+              case r:Response =>
+                println("==========================")
+                assert(r.response == f"(shrug) your best match was ${res} with ${pcent}%1.2f" + "%")
+                println("==========================")
+              case a:HipNotif =>
+                println("==========================")
+                assert(false)
+                println("==========================")
+              case _ => assert(false)
+            }
+            proxy.ref forward x
+          case x => child forward x
+        }
+      }))
+
+      proxy.send(parent, tmsg)
+      proxy.receiveN(1, 8.seconds)
+    }
+
     "list best match for card with real data validate table lee swamp" in {
       val proxy = TestProbe()
       val tmsg: IMessage = new TMessage(TMsgData("card name is lee swamp?"))
@@ -188,6 +248,7 @@ with BeforeAndAfterAll {
                 println(a)
                 val e = HipNotif("gray","html",
                   """<table><tr>
+                    |<td><img src="https://magiccards.info/scans/en/tsts/100.jpg" height="321"</td>
                     |<td><img src="https://magiccards.info/scans/en/m12/238.jpg" height="321"</td>
                     |<td><img src="https://magiccards.info/scans/en/ddr/65.jpg" height="321"</td>
                     |<td><img src="https://magiccards.info/scans/en/me2/243.jpg" height="321"</td>
@@ -231,7 +292,7 @@ with BeforeAndAfterAll {
                       |</tr>
                       |<tr>
                         |<td><img src="https://magiccards.info/scans/en/bng/13.jpg" height="256"</td>
-                        |<td><img src="https://magiccards.info/scans/en/v11/12.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/fvl/12.jpg" height="256"</td>
                         |<td><img src="https://magiccards.info/scans/en/shm/243.jpg" height="256"</td>
                         |<td><img src="https://magiccards.info/scans/en/xln/27.jpg" height="256"</td>
                       |</tr>
@@ -242,10 +303,10 @@ with BeforeAndAfterAll {
                         |<td><img src="https://magiccards.info/scans/en/me3/52.jpg" height="256"</td>
                       |</tr>
                       |<tr>
-                        |<td><img src="https://magiccards.info/scans/en/ptk/45.jpg" height="256"</td>
-                        |<td><img src="https://magiccards.info/scans/en/gpt/109.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/p3k/45.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/gp/109.jpg" height="256"</td>
                         |<td><img src="https://magiccards.info/scans/en/m14/222.jpg" height="256"</td>
-                        |<td><img src="https://magiccards.info/scans/en/mrd/194.jpg" height="256"</td>
+                        |<td><img src="https://magiccards.info/scans/en/mi/194.jpg" height="256"</td>
                      |</tr>
                   |</table>"""
                   .stripMargin.replaceAll("\n", ""))

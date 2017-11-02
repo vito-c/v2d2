@@ -29,7 +29,8 @@ with CardSetProtocol {
   val json = scala.io.Source.fromInputStream(stream).mkString
 
   def scores(str:String, search:String):List[Int] = {
-    val p = s"(\\.|\\*|${"""!<'_-&^%$#@=>,'"""".flatMap(s => s + "|")})"
+    val symbols = """!<'_-&^'%$#"@=>,""".flatMap(s => s + "|")
+    val p = s"(\\.|\\*|${symbols})"
     str.replaceAll(p,"").toLowerCase().split(" ").map { w => 
       search.replaceAll(p,"").split(" ").map{s =>
         StringUtils.getLevenshteinDistance(w, s)
@@ -80,54 +81,73 @@ with CardSetProtocol {
       content onComplete {
         case Success(cards) =>
           val results = lookupName(cs.target.toLowerCase(), cards)
-          // if (scores(results.head.name, cs.target.toLowerCase())) {
-          // }
-          val uri = "https://magiccards.info/scans/en/"
-          val imgs = results collect {
-            case c if(c.number != None && c.setKey != None) => c
-          } map { c =>
-            (uri + c.setKey.get.toLowerCase() + "/" + c.number.get + ".jpg" -> c)
-          }
-
-          imgs map { t => println(t._1) }
-          if (imgs.length > 16) {
-            log.info("send one")
+          pprint.log(results)
+          pprint.log(scores(results.head.name, cs.target.toLowerCase()))
+          pprint.log(cs.target.length)
+          val score = scores(results.head.name, cs.target.toLowerCase()).min
+          val tlen  = cs.target.length
+          val pcent = (tlen - score).toFloat/tlen
+          println("++++++++++++++++++++++++++++")
+          println(s"pc: ${pcent} score: ${score}")
+          println("++++++++++++++++++++++++++++")
+          if (cs.target.length < 3) {
+            context.parent ! Response(cs.imsg,"Try asking again with a longer string")
+          } else if ( 
+            ((tlen == 3 || tlen == 4) && score > 1) ||
+            ((tlen == 5 || tlen == 6) && score > 2) || pcent < 0.7 
+          ) {
             context.parent ! Response(
-              cs.imsg, imgs.map { t =>
-                s"${t._2.name}: ${t._1}"
-              }.mkString("\n"))
+              cs.imsg,
+              f"(shrug) your best match was ${results.head.name} with ${pcent*100}%1.2f" + "%")
           } else {
-            log.info("send many")
-            val h = if(imgs.size>4) 256 else 321
-
-            val tds = imgs.map( e => 
-                s"""<td><img src="${e._1}" height="${h}"</td>""".stripMargin)
-            val body = for( (td, i) <- tds.view.zipWithIndex ) yield {
-              val j = i + 1
-              if ( j % 4 == 0 || j == imgs.size) { s"${td}</tr>" }
-              else if( j % 4 == 1) { s"<tr>${td}" }
-              else if ( j % 4 > 1 ) { td }
-              else td
+            val uri = "https://magiccards.info/scans/en/"
+            val imgs = results collect {
+              case c if(c.number != None && c.setKey != None) => c
+            } map { c =>
+              (uri + c.setKey.get.toLowerCase() + "/" + c.number.get + ".jpg" -> c)
             }
 
-            val o = s"<table>${body.mkString("")}</table>"
+            imgs map { t => println(t._1) }
+            if (imgs.length > 16) {
+              log.info("send one")
+              context.parent ! Response(
+                cs.imsg, imgs.map { t =>
+                  s"${t._2.name}: ${t._1}"
+                }.mkString("\n"))
+            } else {
+              log.info("send many")
+              val h = if(imgs.size>4) 256 else 321
 
-            context.parent ! HipNotif("gray","html",o)
-            if (false) { //TODO: keep this so you can add text request
-              for((t,i) <- imgs.view.zipWithIndex) {
-                system.scheduler.scheduleOnce(500*i milliseconds) {
-                  val s = s"""<table height="321">
-                  |<tr height="321">
-                  |<td><img src="${t._1}" width="225" height="321"></td>
-                  |<td height="321"><strong>${t._2.name}</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${t._2.manaCost.getOrElse("Land")}<BR>
-                  |${t._2.text.getOrElse("").split(" ").zipWithIndex.map { s:(String,Int) => if((s._2+1) % 8 == 0) { s._1 + "<BR>"} else {s._1} }.mkString(" ")}</td>
-                  |</tr></table>""".stripMargin
-                  println(s)
-                  context.parent ! HipNotif("gray","html",s)
-                }
+              val tds = imgs.map( e => 
+                  s"""<td><img src="${e._1}" height="${h}"</td>""".stripMargin)
+              val body = for( (td, i) <- tds.view.zipWithIndex ) yield {
+                val j = i + 1
+                if ( j % 4 == 0 || j == imgs.size) { s"${td}</tr>" }
+                else if( j % 4 == 1) { s"<tr>${td}" }
+                else if ( j % 4 > 1 ) { td }
+                else td
               }
+
+              val o = s"<table>${body.mkString("")}</table>"
+
+              context.parent ! HipNotif("gray","html",o)
             }
           }
+            // if (false) { //TODO: keep this so you can add text request
+            //   for((t,i) <- imgs.view.zipWithIndex) {
+            //     system.scheduler.scheduleOnce(500*i milliseconds) {
+            //       val s = s"""<table height="321">
+            //       |<tr height="321">
+            //       |<td><img src="${t._1}" width="225" height="321"></td>
+            //       |<td height="321"><strong>${t._2.name}</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${t._2.manaCost.getOrElse("Land")}<BR>
+            //       |${t._2.text.getOrElse("").split(" ").zipWithIndex.map { s:(String,Int) => if((s._2+1) % 8 == 0) { s._1 + "<BR>"} else {s._1} }.mkString(" ")}</td>
+            //       |</tr></table>""".stripMargin
+            //       println(s)
+            //       context.parent ! HipNotif("gray","html",s)
+            //     }
+            //   }
+            // }
+          // }
 
         case Failure(t) =>
           context.parent ! Response(cs.imsg, s"An error has occured: " + t.getMessage)
