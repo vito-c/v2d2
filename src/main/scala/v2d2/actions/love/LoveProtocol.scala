@@ -94,11 +94,9 @@ object Love extends BotCombinators {
 
 case class WhoDoLove(imsg:IMessage, target: String)
 object WhoDoLove extends BotCombinators {
-  val ws: P[Unit] = (" "|s"\t").rep.?
 
   val who: P[Unit] = P(IgnoreCase("who") ~ IgnoreCase("m").? ~ ws)
   val does: P[Unit] = P(IgnoreCase("do") ~ IgnoreCase("es").? ~ ws)
-  val letter: P[Unit] = CharIn('A' to 'Z') | CharIn('a' to 'z')
   val target: P[String] = P(at.? ~ letter.rep.! ~ ws)
   val love: P[Unit] = P(IgnoreCase("love") ~ ws)
   val opt: P[String] = P(bot.? ~ ws ~ 
@@ -121,7 +119,6 @@ object WhoLove extends BotCombinators {
   import White._
 
   val who: P[Unit] = P(IgnoreCase("who love") ~ IgnoreCase("s").?)
-  val letter = CharIn('A' to 'Z') | CharIn('a' to 'z')
   // val target: P[String] = P( at.? ~ (IgnoreCase("me") | wild.rep).! ~ " ".?)
   val target: P[String] = P( at.? ~ (letter.rep).! ~ " ".?)
   val opt: P[String] = P(bot.? ~ who ~ target ~ "?".? ~ End)

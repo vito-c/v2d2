@@ -2,6 +2,7 @@ package v2d2.actions.generic
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
+import v2d2.V2D2
 
 import akka.actor.{Actor, ActorLogging, ActorSystem}
 import akka.http.scaladsl.Http
@@ -23,13 +24,14 @@ import spray.json.DefaultJsonProtocol
 //      \"html\", \"message\": \"$MESSAGE\" }" \
 //      $API/room/$ROOM_ID/notification?auth_token=$AUTH_TOKEN
 trait HipNotifProtocol extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val sendLoveFormat = jsonFormat3(HipNotif.apply)
+  implicit val HipNotifFormat = jsonFormat4(HipNotif.apply)
 }
 object HipNotifProtocol extends HipNotifProtocol
 case class HipNotif( 
   color: String = "gray",
   message_format: String = "html",
-  message: String)
+  message: String,
+  room: String)
 class HipChatNotifs extends Actor with ActorLogging with HipNotifProtocol{
 
   import system.dispatcher
@@ -44,7 +46,7 @@ class HipChatNotifs extends Actor with ActorLogging with HipNotifProtocol{
         response <- Http().singleRequest(
           HttpRequest(
             method = HttpMethods.POST, 
-            uri = "https://hipchat.rallyhealth.com/v2/room/120/notification?auth_token=96nHrRVzKRXJsccjHuNS6K6X8WNmJrafF8TVpY70",
+            uri = s"https://hipchat.rallyhealth.com/v2/room/${notif.room}/notification?auth_token=${V2D2.roomToken}",
             entity = request))
         entity <- Unmarshal(response.entity).to[String]
       } yield entity

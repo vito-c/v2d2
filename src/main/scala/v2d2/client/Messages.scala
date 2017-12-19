@@ -52,21 +52,23 @@ class XMessage(xmsg: Message) extends IMessage {
   //   XmppStringUtils.parseBareJid(xmsg.getFrom())
   // }
   override def content:     String = { xmsg.getBody() }
-  override def fromJid:     String = { XmppStringUtils.parseBareJid(xmsg.getFrom()) }
-  override def fromName:    String = { XmppStringUtils.parseResource(xmsg.getFrom()) }
+  override def fromJid:     String = { XmppStringUtils.parseBareJid(xmsg.getFrom().toString()) }
+  override def fromName:    String = { XmppStringUtils.parseResource(xmsg.getFrom().toString()) }
   override def fromNick:    String = { "(poo)" }
-  override def fromRaw:     String = { xmsg.getFrom() }
-  override def fromMsgJid:  String = { xmsg.getFrom() }
+  override def fromRaw:     String = { xmsg.getFrom().toString() }
+  override def fromMsgJid:  String = { xmsg.getFrom().toString() }
 }
 
 //MultiUserMessage
 class MUMessage(xmsg: Message, chat: MultiUserChat) extends XMessage(xmsg) with IMessage {
 
   override def fromRaw: String = {
-    val occupant = chat.getOccupant(xmsg.getFrom())
-    if (occupant != null)
-      occupant.getJid()
-    else ""
+    if (xmsg.getFrom().isEntityFullJid()){
+      val occupant = chat.getOccupant(xmsg.getFrom().asEntityFullJidIfPossible())
+      if (occupant != null)
+        occupant.getJid().toString()
+      else ""
+    } else ""
   }
 
   override def fromJid: String = {

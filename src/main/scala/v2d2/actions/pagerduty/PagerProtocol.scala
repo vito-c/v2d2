@@ -19,6 +19,7 @@ trait Limiter {
 trait PagerOnCallsProtocol 
   extends SprayJsonSupport 
   with DefaultJsonProtocol {
+
   implicit val pagerUserFormat = jsonFormat4(PagerUser.apply)
   implicit val escalationFormat = jsonFormat4(EscalationPolicy.apply)
 
@@ -38,8 +39,8 @@ trait PagerOnCallsProtocol
       catch {
         case t: Throwable => error(s)
       }
-        case _ =>
-          error(json.toString())
+      case _ =>
+        error(json.toString())
       // case JsString(s) => try {
       //   formatter.parseDateTime(s)
       // }
@@ -98,14 +99,13 @@ with DefaultJsonProtocol {
 
     def read(json: JsValue): DateTime = json match {
       case JsString(s) => try {
-        println(s"date $s")
-        DateTime.parse(s)
-      }
-      catch {
-        case t: Throwable => error(s)
-      }
-        case _ =>
-          error(json.toString())
+          println(s"date $s")
+          DateTime.parse(s)
+        } catch {
+          case t: Throwable => error(s)
+        }
+      case _ =>
+        error(json.toString())
       // case JsString(s) => try {
       //   formatter.parseDateTime(s)
       // }
@@ -136,6 +136,7 @@ case class PagerOnCall(
 trait EscalationPolicyProtocol extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val escalationFormat = jsonFormat4(EscalationPolicy.apply)
 }
+
 object EscalationPolicyProtocol extends EscalationPolicyProtocol
 case class EscalationPolicy(
   id: String,

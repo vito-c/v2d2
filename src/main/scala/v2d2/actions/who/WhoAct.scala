@@ -23,7 +23,7 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
   import system.dispatcher
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
-  implicit val timeout = Timeout(25.seconds)
+  implicit val timeout = Timeout(13000.seconds)
 
   def best(s: String, person: WhoUser): Int = {
     List(

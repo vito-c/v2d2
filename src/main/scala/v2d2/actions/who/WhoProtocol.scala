@@ -19,9 +19,7 @@ case class GetWhoUser(imsg: IMessage, target: User)
 case class GetWhoAll(imsg: IMessage, search: String)
 case class WhoIs(imsg:IMessage, target: String)
 object WhoIs extends BotCombinators {
-  val ws: P[Unit] = P((" "|s"\t").rep.?)
   val who: P[Unit] = P(IgnoreCase("who") ~ ws ~ IgnoreCase("is") ~ ws)
-  val letter = CharIn('A' to 'Z') | CharIn('a' to 'z')
   val target: P[String] = P( 
     ((letter.rep ~ "." ~ letter.rep).! ~ "@".? ~ AnyChar.rep | 
       (letter.rep ~ " " ~ letter.rep).! |

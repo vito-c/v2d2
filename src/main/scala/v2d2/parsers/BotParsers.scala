@@ -4,15 +4,50 @@ import fastparse._
 import fastparse.all._
 import fastparse.parsers.Combinators.Rule
 import fastparse.parsers._
+import akka.actor.ActorRef
+import v2d2.client.core._
+
+// trait ISearchable{ 
+//   def needle: String
+//   def asker: Option[ActorRef] }
+// case class Email(needle: String, asker: Option[ActorRef] = None) extends ISearchable
+
+// case class Nick(needle: String) extends ISearchable
+// case class FullName(needle: String) extends ISearchable
+// case class UName(needle: String) extends ISearchable
+// case class Name(needle: String) extends ISearchable
 
 trait BotCombinators {
+  val ws: P[Unit] = P((" "|s"\t").rep.?)
   val White = WhitespaceApi.Wrapper{
     import fastparse.all._
     NoTrace(" ".rep)
   }
-  val bot: P[Unit] = P((IgnoreCase("bot") | IgnoreCase("v2d2") | IgnoreCase("!")) ~ ",".?)
-
+  def ic(str:String) = { IgnoreCase(str) }
   val at: P[Unit] = P("@")
+  val letter = CharIn('A' to 'Z') | CharIn('a' to 'z')
+  val ltrs = P(letter.rep(1))
+  val alphanum = letter | CharIn('0' to '9') //CharIn('A' to 'Z') | CharIn('a' to 'z') | CharIn('0' to '9')
+  val txt = P(alphanum | CharIn(".`',-_$\"")) 
+  val txts = P(txt.rep(1))
+  val wnick: P[String] = P((at ~ alphanum.rep(1)).!)
+
+  val jid: P[String] = P((txts ~ at ~ "chat.btf.hipchat.com").!)
+  val email: P[String] = P((txts ~ at ~ alphanum.rep(2) ~ "." ~ ltrs).!)
+  val nicky: P[String] = P(at ~ alphanum.rep(1).!)
+  val fname: P[String] = P((letter.rep(2) ~ ws ~ letter.rep(2)).!)
+  val uname: P[String] = P((letter.rep(2) ~ "." ~ letter.rep(1)).!)
+  val name:  P[String] = P(letter.rep(2).!)
+
+  val ajid: P[JID]        = P(jid.map(JID(_)))
+  val aemail: P[Email]    = P(email.map(Email(_)))
+  val anicky: P[Nick]     = P(nicky.map(Nick(_)))
+  val afname: P[FullName] = P(fname.map(FullName(_)))
+  val auname: P[UName]    = P(uname.map(UName(_)))
+  val aname:  P[Name]     = P(name.map(Name(_)))
+
+  val bot: P[Unit] = P((ic("bot") | ic("v2d2") | ic("!")) ~ ",".?)
+
   val wild = P(CharPred(x => Blackspace.matches(x)))
   val nick: P[String] = P(at ~ wild.rep.! ~ " ".?)
   val nicks: P[Seq[String]] = P(nick.rep)

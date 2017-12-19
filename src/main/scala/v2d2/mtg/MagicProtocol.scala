@@ -15,24 +15,20 @@ object CardNameSearch extends BotCombinators {
   // card name foo bar
   // card name foo bar (with text|+text|--text|-t)
   // !card name foo bar
-  val ws: P[Unit] = P((" "|s"\t").rep.?)
-  val letter = P(
-    CharIn('A' to 'Z') | 
-    CharIn('a' to 'z') | 
-    CharIn("`',-_$\""))
-  val target: P[String] = P((letter ~ (" "|s"\t").rep).rep(1).!)
+  val word = P(letter | CharIn("`',-_$\""))
+  val target: P[String] = P((word ~ (" "|s"\t").rep).rep(1).!)
     // ( (letter.rep ~ (" "|s"\t").rep(1) ~ letter.rep).! |
     //   (letter.rep(1)).! ) ~ " ".?)
     // what card name is foo bar
   val card: P[Unit] = P(
-    IgnoreCase("what").? ~ ws ~ 
-    IgnoreCase("card") ~ ws ~ 
-    IgnoreCase("name") ~ ws ~
-    IgnoreCase("is").? ~ ws)
-  val text:P[Unit] = P(IgnoreCase("text"))
+    ic("what").? ~ ws ~ 
+    ic("card") ~ ws ~ 
+    ic("name") ~ ws ~
+    ic("is").? ~ ws)
+  val text:P[Unit] = P(ic("text"))
   // wait to implement
   val optText:P[Unit] = P(
-    IgnoreCase("with").? ~ ws ~
+    ic("with").? ~ ws ~
     ((CharIn("+")|"--") ~ text |
     CharIn("-") ~ "t"))
   val opt: P[String] = P(bot.? ~ ws ~ card ~ target ~ "?".rep ~ End)

@@ -21,17 +21,21 @@ import v2d2.actions.generic._
 import v2d2.actions.love._
 import v2d2.actions.who._
 import v2d2.actions.pager._
+import v2d2.parsers.FindUser
 import org.jivesoftware.smackx.xhtmlim.XHTMLManager
+import org.jxmpp.jid.parts.Resourcepart
 
 class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor with ActorLogging {
 
-  val notifs = context.actorOf(Props(classOf[HipChatNotifs]), name = "hipchatnotifs")// + muc.getRoom() )
+  val hcnotifs = context.actorOf(Props(classOf[HipChatNotifs]), name = "hcnotifs")// + muc.getRoom() )
+  val searcher = context.actorOf(Props(classOf[UserSearchAct]), name = "usersearch")// + muc.getRoom() )
+  val hcusers  = context.actorOf(Props(classOf[HipChatUsersAct]), name = "hcusers")
   // non breaking space: \u2002
   override def preStart = {
     val history = new DiscussionHistory()
     history.setMaxChars(0) // Don't get anything when joining
     history.setMaxStanzas(0)
-    muc.join(V2D2.display, "", history, 5000)
+    muc.join(Resourcepart.from(V2D2.display.toString()), "", history, 5000)
     context.actorOf(Props(classOf[Quitter]), name = "quit")// + muc.getRoom() )
     context.actorOf(Props(classOf[NailedIt]), name = "nailed")// + muc.getRoom() )
     context.actorOf(Props(classOf[Help]), name = "help")// + muc.getRoom() )
@@ -42,7 +46,11 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
     context.actorOf(Props(classOf[WhoAct]), name = "whois")// + muc.getRoom() )
     context.actorOf(Props(classOf[ServerAct]), name = "server")// + muc.getRoom() )
     context.actorOf(Props(classOf[HistoryAct], muc), name = "history")// + muc.getRoom() )
-    context.actorOf(Props(classOf[MagicAct]), name = "magic")// + muc.getRoom() )
+    context.actorOf(
+      Props(classOf[MagicAct], 
+      Some(
+        java.net.URLEncoder.encode(muc.getReservedNickname,"utf-8")
+          .replace("+", "%20"))), name = "magic")
 
     muc.addParticipantListener(new PresenceListener() {
       override def processPresence(presence: Presence) = {
@@ -57,7 +65,7 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
     })
     muc.addMessageListener(new MessageListener() {
       def processMessage(msg: Message) = {
-        val sender = XmppStringUtils.parseResource(msg.getFrom())
+        val sender = XmppStringUtils.parseResource(msg.getFrom().toString())
         if (sender != V2D2.display) {
           val imsg: IMessage = new MUMessage(msg, muc)
           log.info(s"process msg" +
@@ -84,6 +92,9 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
 
   def receive: Receive = {
 
+    case f:FindUser => 
+      searcher forward f
+
     case MakeRosterDirty() =>
       context.parent ! MakeRosterDirty()
 
@@ -101,7 +112,7 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
       sender ! History(Some(_history), h.again)
 
     case h: HipNotif =>
-      notifs ! h
+      hcnotifs ! h
 
     case Response(imsg, response) =>
       muc.sendMessage(response)

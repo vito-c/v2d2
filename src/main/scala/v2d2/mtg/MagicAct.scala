@@ -2,6 +2,7 @@ package v2d2.mtg
 
 import java.io.InputStream
 
+import org.apache.commons.text.similarity._
 import scala.collection.immutable
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -18,7 +19,9 @@ import v2d2.actions.generic.protocol.Response
 import v2d2.client.IMessage
 import v2d2.client.core._
 
-class MagicAct extends Actor with ActorLogging
+class MagicAct(room: Option[String])
+extends Actor 
+with ActorLogging
 with CardSetProtocol {
   import system.dispatcher
   implicit val system = ActorSystem()
@@ -80,7 +83,8 @@ with CardSetProtocol {
       } yield cards
       content onComplete {
         case Success(cards) =>
-          val results = lookupName(cs.target.toLowerCase(), cards)
+          val target = cs.target.toLowerCase()
+          val results = lookupName(target, cards)
           pprint.log(results)
           pprint.log(scores(results.head.name, cs.target.toLowerCase()))
           pprint.log(cs.target.length)
@@ -96,9 +100,14 @@ with CardSetProtocol {
             ((tlen == 3 || tlen == 4) && score > 1) ||
             ((tlen == 5 || tlen == 6) && score > 2) || pcent < 0.7 
           ) {
+            val jw = new JaroWinklerDistance()
+            val jcent = jw(target, results.head.name)
+            val p = "%"
             context.parent ! Response(
               cs.imsg,
-              f"(shrug) your best match was ${results.head.name} with ${pcent*100}%1.2f" + "%")
+              f"""(shrug) your best match was 
+                  |${results.head.name} with ${pcent*100}%1.2f$p
+                  |and score ${jcent*100}%1.2f$p""".stripMargin.replaceAll("\n", " "))
           } else {
             val uri = "https://magiccards.info/scans/en/"
             val imgs = results collect {
@@ -109,13 +118,11 @@ with CardSetProtocol {
 
             imgs map { t => println(t._1) }
             if (imgs.length > 16) {
-              log.info("send one")
               context.parent ! Response(
                 cs.imsg, imgs.map { t =>
                   s"${t._2.name}: ${t._1}"
                 }.mkString("\n"))
             } else {
-              log.info("send many")
               val h = if(imgs.size>4) 256 else 321
 
               val tds = imgs.map( e => 
@@ -129,8 +136,7 @@ with CardSetProtocol {
               }
 
               val o = s"<table>${body.mkString("")}</table>"
-
-              context.parent ! HipNotif("gray","html",o)
+              context.parent ! HipNotif("gray","html",o,room.getOrElse("120"))
             }
           }
             // if (false) { //TODO: keep this so you can add text request

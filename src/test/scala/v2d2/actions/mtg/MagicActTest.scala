@@ -213,7 +213,7 @@ with BeforeAndAfterAll {
             x match  {
               case r:Response =>
                 println("==========================")
-                assert(r.response == f"(shrug) your best match was ${res} with ${pcent}%1.2f" + "%")
+                assert(r.response == f"(shrug) your best match was ${res} with ${pcent*100}%1.2f" + "%")
                 println("==========================")
               case a:HipNotif =>
                 println("==========================")
@@ -252,7 +252,7 @@ with BeforeAndAfterAll {
                     |<td><img src="https://magiccards.info/scans/en/m12/238.jpg" height="321"</td>
                     |<td><img src="https://magiccards.info/scans/en/ddr/65.jpg" height="321"</td>
                     |<td><img src="https://magiccards.info/scans/en/me2/243.jpg" height="321"</td>
-                 |</tr></table>""".stripMargin.replaceAll("\n", ""))
+                 |</tr></table>""".stripMargin.replaceAll("\n", ""),"1234")
                 assert(e.toString == a.toString)
                 println("==========================")
               case _ => assert(false)
@@ -309,7 +309,7 @@ with BeforeAndAfterAll {
                         |<td><img src="https://magiccards.info/scans/en/mi/194.jpg" height="256"</td>
                      |</tr>
                   |</table>"""
-                  .stripMargin.replaceAll("\n", ""))
+                  .stripMargin.replaceAll("\n", ""), "1234")
                 assert(e.toString == a.toString)
                 println("==========================")
               case _ => assert(false)

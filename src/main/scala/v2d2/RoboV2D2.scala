@@ -1,48 +1,25 @@
 package v2d2
 
+import scala.collection.JavaConversions._
+import scala.concurrent.duration._
 import scala.language.postfixOps
-import akka.actor.{ActorRef, Actor, ActorSystem, ActorContext, Props, ActorLogging}
-import akka.japi.Util.immutableSeq
-import akka.pattern.ask
+import scala.util.control.NonFatal
+import org.jxmpp.jid.impl.JidCreate
+import v2d2.actions.generic.HipUsersReq
+
+import akka.actor.{ActorSystem, Props}
 import akka.util.Timeout
-import collection.JavaConversions._
-import com.typesafe.config.Config
 import com.typesafe.config._
 import com.typesafe.scalalogging.Logger
-import concurrent.Future
-import concurrent.Promise
-import fastparse.all._
-import fastparse.parsers.Combinators.Rule
-import fastparse.parsers._
-import java.util.Collection
-import org.apache.log4j.ConsoleAppender
-import org.apache.log4j.Level
-import org.apache.log4j.LogManager
-import org.apache.log4j.PatternLayout
-import org.jivesoftware.smack.ConnectionConfiguration
-import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode
+import org.apache.log4j.{ConsoleAppender, Level, LogManager, PatternLayout}
 import org.jivesoftware.smack._
+import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode
 import org.jivesoftware.smack.packet.Presence
-import org.jivesoftware.smack.packet.Stanza
 import org.jivesoftware.smack.provider.ProviderManager
-import org.jivesoftware.smack.roster.{RosterListener,Roster,RosterEntry,RosterLoadedListener}
-import org.jivesoftware.smack.tcp.{XMPPTCPConnectionConfiguration, XMPPTCPConnection}
-import org.jivesoftware.smackx.muc.Affiliate
-import org.jivesoftware.smackx.muc.Occupant
-import org.jivesoftware.smackx.muc.{MultiUserChatManager, DiscussionHistory, MultiUserChat}
+import org.jivesoftware.smack.tcp.{XMPPTCPConnection, XMPPTCPConnectionConfiguration}
 import org.slf4j.LoggerFactory
-import reflect.runtime.universe.Type
-import reflect.runtime.universe.Type
-import scala.collection.JavaConverters._
-import scala.collection.immutable
-import scala.concurrent.duration._
-import scala.concurrent.duration._
-import scala.util.control.NonFatal
-import scala.util.{Success, Failure}
-import v2d2.client.core.{XMPPActor, JoinRoom}
-import v2d2.client.{Profile,ProfileProvider,ProfileIQ,User}
-import v2d2.client.core.Ping
-import v2d2.mtg.CardProtocol
+import v2d2.client.{ProfileIQ, ProfileProvider}
+import v2d2.client.core.{JoinRoom, Ping, XMPPActor}
 
 object V2D2 
   extends App 
@@ -54,26 +31,30 @@ object V2D2
   val system   = ActorSystem("system")
   log.info("system booting up")
 
-  implicit val timeout = Timeout(5.seconds)
+  implicit val timeout = Timeout(1300.seconds)
 
-  val vitoJid = "1_492@chat.btf.hipchat.com"
-  val v2d2Jid = "1_1821@btf.hipchat.com"
+  // val vitoJid = "1_492@chat.btf.hipchat.com"
+  // val v2d2Jid = "1_1821@btf.hipchat.com"
 
   val conf = ConfigFactory.load("v2d2.conf")
   val creds = ConfigFactory.load("creds.conf")
   val rooms = conf.getList("v2d2.rooms").toList
-  val uid: String      = creds.getString("creds.user")
-  val port: Int        = creds.getInt("creds.port")
-  val host: String     = creds.getString("creds.host")
-  val display: String  = creds.getString("creds.display")
-  val password: String = creds.getString("creds.password")
 
+  val uid: String       = creds.getString("creds.user")
+  val port: Int         = creds.getInt("creds.port")
+  val host: String      = creds.getString("creds.host")
+  val display: String   = creds.getString("creds.display")
+  val password: String  = creds.getString("creds.password")
+  val v2d2Jid: String   = creds.getString("creds.jid")
+  val roomToken: String = creds.getString("creds.tokens.room")
+  val hcapi: String     = creds.getString("creds.tokens.user")
 
   private var _rosterDirty = true
   private var _mapsDirty = true
 
+    // .setServiceName(host)
   private val xconf = XMPPTCPConnectionConfiguration.builder()
-    .setServiceName(host)
+    .setServiceName(JidCreate.domainBareFrom(host))
     .setPort(port)
     .setResource("bot")
     .setSecurityMode(SecurityMode.required)
@@ -82,7 +63,8 @@ object V2D2
   log.info("xmpptcp connection built")
 
   try {
-    _connection.setPacketReplyTimeout(5000)
+    // This was causing an issue with profile IQ
+    _connection.setPacketReplyTimeout(190000)
     _connection.connect()
     log.info("xmpptcp connection established")
     _connection.login(uid, password)
@@ -109,6 +91,7 @@ object V2D2
     conf.getString(s"v2d2.pagerduty.${prop}")
   }
 
+  // TBD OPTIMIZE THIS
   // _roster.setSubscriptionMode(Roster.SubscriptionMode.accept_all)
   // roster.addRosterListener(new RosterListener(){
   //   def entriesAdded(args: Collection[String]) = {
@@ -151,6 +134,8 @@ object V2D2
     Props(classOf[XMPPActor], _connection),
     name = "xmpp"
   )
+
+  xactor ! HipUsersReq()
 
   xactor ! Ping()
   val cancellable =

@@ -3,6 +3,18 @@ package v2d2.client.core
 import v2d2.parsers.{Blackspace,BotCombinators}
 import v2d2.client.IMessage
 import scala.collection.immutable.Queue
+import akka.actor.ActorRef
+import v2d2.client.User
+
+trait ISearchable{ 
+  def needle: String
+}
+case class Email(needle: String) extends ISearchable
+case class Nick(needle: String) extends ISearchable
+case class JID(needle: String) extends ISearchable
+case class FullName(needle: String) extends ISearchable
+case class UName(needle: String) extends ISearchable
+case class Name(needle: String) extends ISearchable
 
 case class MagicCards()
 case class JoinRoom(room: String, chatpass: Option[String])
@@ -10,16 +22,19 @@ case class RosterList()
 case class UserList()
 case class UserMap()
 case class EmailMap()
+case class NameMap()
 case class NickMap()
 case class ProfileRQ(jid: String)
 case class MakeRosterDirty()
 case class Ping()
-case class FindUser(
-  email: Option[String],
-  jid: Option[String],
-  name: Option[String],
-  nick: Option[String]
-)
+// case class SearchUserMap(searchable: ISearchable, map:Map[String,User])
+// case class FindUser(search: String)
+// case class FindUser(
+//   email: Option[String],
+//   jid: Option[String],
+//   name: Option[String],
+//   nick: Option[String]
+// )
 
 // case class Again(bang: Option[String], cmd: Option[String], imsg: IMessage)
 case class Again(cmd: Option[String], imsg: IMessage)

@@ -12,6 +12,8 @@ import org.jivesoftware.smack.filter.StanzaFilter
 import org.jivesoftware.smack.StanzaListener
 import org.jivesoftware.smack.packet.Stanza
 import org.jivesoftware.smack.SmackException.NotConnectedException;
+import org.jivesoftware.smack.SmackException.NotLoggedInException;
+
 
 trait IProfile extends SimpleIQ {
   /**************************************************************************************
@@ -118,7 +120,9 @@ class ProfileFilter extends StanzaFilter {
 
 class ProfileListener extends StanzaListener {
   @throws(classOf[NotConnectedException])
-  override def processPacket(packet: Stanza): Unit = {
+  @throws(classOf[InterruptedException])
+  @throws(classOf[NotLoggedInException])
+  override def processStanza(packet: Stanza): Unit = {
     //TODO: Implement
   }
 }
@@ -128,13 +132,13 @@ class ProfileProvider extends IQProvider[ProfileIQ] {
     @throws(classOf[IOException])
     override def parse(parser: XmlPullParser, initialDepth: Int): ProfileIQ = {
       // println(s"==================================")
-      var mention_name: String = ""
-      var name        : String = ""
-      var photo_large : String = ""
-      var photo_small : String = ""
-      var title       : String = ""
-      var email       : String = ""
-      var timezone    : String = ""
+      var mention_name : String = ""
+      var name         : String = ""
+      var photo_large  : String = ""
+      var photo_small  : String = ""
+      var title        : String = ""
+      var email        : String = ""
+      var timezone     : String = ""
       var offset       : Double = 0.0d
 
       @tailrec
@@ -171,7 +175,14 @@ class ProfileProvider extends IQProvider[ProfileIQ] {
                 // println(s"email: ${email}")
                 iterator()
               case "timezone" =>
-                offset = parser.getAttributeValue(null, "utc_offset").toFloat
+                try {
+                  offset = parser.getAttributeValue(null, "utc_offset").toFloat
+                } catch {
+                  case e: Exception =>
+                    println(s"exception: ${e}")
+                   // case ioe: IOException => ... // more specific cases first !
+                   // case e: Exception => ...
+                }
                 timezone = parser.nextText()
                 // println(s"offset $offset")
                 // println(s"timezone: ${timezone}")

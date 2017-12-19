@@ -6,7 +6,8 @@ import fastparse.core.Parsed
 import v2d2.client.IMessage
 import v2d2.parsers.BotCombinators
 
-case class OnCall(team: Option[String], date: Option[String])
+case class WhenOnCall(imsg:IMessage, target: String)
+case class WhoOnCall(target: Option[String], date: Option[String])
 case class OnCallTeams(imsg: IMessage, teams: Option[Seq[String]])
 
 object OnCallTeams extends BotCombinators {
@@ -15,10 +16,7 @@ object OnCallTeams extends BotCombinators {
   //are foo, biz, and.? baz on call teams
   //are foo and.? baz on call teams
 
-  val ws: P[Unit] = P((" "|s"\t").rep.?)
   val ss: P[Unit] = P((" "|s"\t").rep)
-  def ic(str:String) = { IgnoreCase(str) }
-  val alphanum = CharIn('A' to 'Z') | CharIn('a' to 'z') | CharIn('0' to '9')
   val whatIs: P[Unit] = P((ic("what").? ~ ws ~ ic("are") ~ ws ~ ic("the").? )|
     ic("is"))
   val on:P[Unit] = P(ic("on"))
@@ -46,14 +44,48 @@ object OnCallTeams extends BotCombinators {
   }
 }
 
-object OnCall extends BotCombinators {
-  val ws: P[Unit] = P((" "|s"\t").rep.?)
+//when is <target> on call?
+//  on call <target>
+//  <target> on call
+//when am I on call
+object WhenOnCall extends BotCombinators {
+  val whis: P[Unit] = P(IgnoreCase("when") ~ ws ~ (IgnoreCase("is")|IgnoreCase("am")) ~ ws)
+  val oncall: P[Unit] = P(
+    IgnoreCase("on") ~ ws ~ 
+    IgnoreCase("call") ~ ws)
+  val target: P[String] = P(email|wnick|fname|uname|name|IgnoreCase("i").!)
+
+  val opt: P[String] = P(
+    bot.? ~ whis.? ~ 
+    ((target ~ ws ~ oncall)|(oncall ~ target)) ~ "?".rep ~ End)
+
+  def apply(imsg: IMessage): Option[WhenOnCall] = {
+    apply(imsg.content, imsg)
+  }
+
+  def apply(str: String, imsg: IMessage): Option[WhenOnCall] = {
+    opt.parse(str) match {
+      case Parsed.Success(value, _) => 
+        pprint.log(value)
+        Some(WhenOnCall(imsg, value))
+      case _ => None
+    }
+  }
+
+}
+
+
+//who is on call <date>?
+//  on call <date>
+//who is on call for <summary/team> on <date>
+//  on call <summary/team> <date>
+object WhoOnCall extends BotCombinators {
   val who: P[Unit] = P(IgnoreCase("who") ~ ws ~ IgnoreCase("is") ~ ws)
   val oncallfor: P[Unit] = P(
     IgnoreCase("on") ~ ws ~ 
     IgnoreCase("call") ~ ws.? ~
     IgnoreCase("for").? ~ ws)
-  val alphanum = CharIn('A' to 'Z') | CharIn('a' to 'z') | CharIn('0' to '9')
+//   val alphanum = CharIn('A' to 'Z') | CharIn('a' to 'z') | CharIn('0' to '9')
   val date = P(alphanum|"/"|"-"|"."|":"|" "|",")
   val team: P[Option[String]] = P((alphanum.rep(min=1)).!.? ~ ws)
   val on = P(IgnoreCase("on") ~ ws)
@@ -61,14 +93,14 @@ object OnCall extends BotCombinators {
   val opt: P[(Option[String],Option[String])] = P(bot.? ~ who.? ~ oncallfor ~ team ~ time ~ "?".rep ~ End)
 
 
-  def apply(imsg: IMessage): Option[OnCall] = {
+  def apply(imsg: IMessage): Option[WhoOnCall] = {
     apply(imsg.content)
   }
 
-  def apply(str: String): Option[OnCall] = {
+  def apply(str: String): Option[WhoOnCall] = {
     opt.parse(str) match {
       case Parsed.Success(value, _) => 
-        Some(OnCall(value._1, value._2))
+        Some(WhoOnCall(value._1, value._2))
       case _ => None
     }
   }
