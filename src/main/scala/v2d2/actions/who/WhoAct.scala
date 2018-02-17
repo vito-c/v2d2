@@ -23,7 +23,7 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
   import system.dispatcher
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
-  implicit val timeout = Timeout(13000.seconds)
+  implicit val timeout = Timeout(25.seconds)
 
   def best(s: String, person: WhoUser): Int = {
     List(
@@ -141,7 +141,7 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
                 s"email: ${d.email}\n" +
                 s"location: ${d.loc.getOrElse("No Data")}\n" +
                 s"hipchat: ${d.hipchatMention.getOrElse("No Data")}\n" +
-                s"avatar: ${V2D2.who("root")}${d.avatar.getOrElse("No Data")}"
+                s"avatar: ${d.avatar.getOrElse("No Data")}"
             }.mkString("\n"))
           )
         case Failure(t) =>
@@ -174,4 +174,3 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
       
   }
 }
-

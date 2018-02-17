@@ -37,7 +37,7 @@ with ActorLogging {
               pp.success(p)
             } else {
               pprint.log(rq, "Failure")
-              pp.failure(//UserUseless(s"Failed: ${rq.jid}"))
+              pp.failure(
                 throw new Exception(s"failed ${rq.jid}"))
             }
           }

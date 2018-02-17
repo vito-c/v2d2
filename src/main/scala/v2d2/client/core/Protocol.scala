@@ -16,6 +16,8 @@ case class FullName(needle: String) extends ISearchable
 case class UName(needle: String) extends ISearchable
 case class Name(needle: String) extends ISearchable
 
+case class UserListResponse(users:List[User])
+
 case class MagicCards()
 case class JoinRoom(room: String, chatpass: Option[String])
 case class RosterList()

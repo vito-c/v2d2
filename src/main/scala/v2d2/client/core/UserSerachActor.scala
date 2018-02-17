@@ -27,7 +27,7 @@ with ActorLogging {
   import system.dispatcher
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
-  implicit val timeout = Timeout(13000.seconds)
+  implicit val timeout = Timeout(25.seconds)
 
   // lazy val xmpp = context.actorSelection("/user/xmpp")
   // OutsideActor => UserSearchAct

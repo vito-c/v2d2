@@ -18,7 +18,10 @@ import v2d2.V2D2
 import v2d2.client.{IMessage, User}
 import v2d2.client.core._
 
-class LoveAct(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonProtocol {
+class LoveAct(muc: MultiUserChat) 
+extends Actor 
+with ActorLogging 
+with LoveJsonProtocol {
 
   import system.dispatcher
   implicit val system = ActorSystem()
@@ -34,7 +37,9 @@ class LoveAct(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonP
           for {
             nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
             jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
-          } yield(
+          } yield {
+            log.info(s"nmap req: ${nmap.size}")
+            log.info(s"jmap req: ${jmap.size}")
             jmap get (imsg.fromJid) match {
               case Some(user) =>
                 val sender = user
@@ -65,7 +70,7 @@ class LoveAct(muc: MultiUserChat) extends Actor with ActorLogging with LoveJsonP
                   self ! SendUsersLove(sender, users, love.reason, imsg)
               case _ =>
                 context.parent ! s"..sigh humans."
-          })
+          } }
         case _ => None
       }
 

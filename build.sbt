@@ -6,6 +6,7 @@ cancelable in Global := true
 scalaVersion := "2.11.7"
 ensimeIgnoreScalaMismatch in ThisBuild := true
 ensimeScalaVersion in ThisBuild := "2.11.7"
+// ensimeServerVersion in ThisBuild := 3.0.0-SNAPSHOT
 
 // enablePlugins(JavaAppPackaging)
 // javaOptions += "-Dsmack.debugEnabled=true v2d2"
@@ -24,6 +25,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 libraryDependencies ++= Seq(
 
   "com.typesafe.akka" %% "akka-actor" % akkaV,
+  "com.typesafe.akka" %% "akka-contrib" % akkaV,
   "com.typesafe.akka" %% "akka-stream" % akkaV,
   "com.typesafe.akka" %% "akka-testkit" % akkaV,
   "com.typesafe.akka" %% "akka-http" % akkaHttpV,

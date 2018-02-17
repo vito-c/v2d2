@@ -19,7 +19,7 @@ import org.jivesoftware.smack.provider.ProviderManager
 import org.jivesoftware.smack.tcp.{XMPPTCPConnection, XMPPTCPConnectionConfiguration}
 import org.slf4j.LoggerFactory
 import v2d2.client.{ProfileIQ, ProfileProvider}
-import v2d2.client.core.{JoinRoom, Ping, XMPPActor}
+import v2d2.client.core.{UserList,JoinRoom, Ping, XMPPActor}
 
 object V2D2 
   extends App 
@@ -31,7 +31,7 @@ object V2D2
   val system   = ActorSystem("system")
   log.info("system booting up")
 
-  implicit val timeout = Timeout(1300.seconds)
+  implicit val timeout = Timeout(25.seconds)
 
   // val vitoJid = "1_492@chat.btf.hipchat.com"
   // val v2d2Jid = "1_1821@btf.hipchat.com"
@@ -158,6 +158,7 @@ object V2D2
     log.info(s"name: ${name} pass: ${pass}")
     xactor ! JoinRoom(name, Some(pass))
   }
+  xactor ! UserList()
 
   // val actors = conf.getList("v2d2.actors").toList
   // actors foreach { entry =>

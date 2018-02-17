@@ -11,6 +11,7 @@ import org.jxmpp.jid.impl.JidCreate
 import org.jxmpp.jid.Jid
 import java.lang.System
 import v2d2.actions.generic.HipUsers
+import scala.language.postfixOps
 
 import akka.actor.{Actor, ActorContext, ActorLogging, ActorSystem, Props}
 import akka.pattern.{ask, pipe}
@@ -41,22 +42,22 @@ class XMPPActor(connection: XMPPTCPConnection)
 extends Actor 
 with ActorLogging {
 
-  import system.dispatcher
+  // import system.dispatcher
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
   // implicit val timeout = Timeout(130.seconds)
-  implicit val timeout = Timeout(130.seconds)
+  implicit val timeout = Timeout(25.seconds)
 
   val chatManager: ChatManager = ChatManager.getInstanceFor(connection)
-  val _roster:Roster = Roster.getInstanceFor(connection)
-  private var _usersDirty: Boolean = true
+  // private var _usersDirty: Boolean = true
   private var _usersCache: List[User] = Nil
-  private var _rosterDirty: Boolean = true
-  private var _rosterLoading = false
-  private var _rosterCache: List[RosterEntry] = Nil
+  // private var _rosterDirty: Boolean = true
+  // private var _rosterLoading = false
+  // private var _rosterCache: List[RosterEntry] = Nil
 
   val searcher = context.actorOf(Props(classOf[UserSearchAct]), name = "usersearch")// + muc.getRoom() )
   val profile  = context.actorOf(Props(classOf[ProfileActor], connection), name = "cmd:profile" )
+  val useraggregator = context.actorOf(Props(classOf[UserAggreator], connection), name = "cmd:useraggregator" )
   var counter  = System.currentTimeMillis()
   val hcnotifs = context.actorOf(Props(classOf[HipChatNotifs]), name = "hcnotifs")// + muc.getRoom() )
   val hcusers  = context.actorOf(Props(classOf[HipChatUsersAct]), name = "hcusers")// + muc.getRoom() )
@@ -74,42 +75,13 @@ with ActorLogging {
     context.actorOf(Props(classOf[ServerAct]), name = "cmd:server")// + muc.getRoom() )
     context.actorOf(Props(classOf[MagicAct], None), name = "cmd:magic")// + muc.getRoom() )
     // context.actorOf(Props(classOf[ServerAct], muc), name = "server")// + muc.getRoom() )
+    //
     // context.actorOf(Props(classOf[HistoryAct], muc), name = "history")// + muc.getRoom() )
     // _rosterLoading = true
-    // _roster.reloadAndWait()
-    // _rosterCache = _roster.getEntries().asScala.toList
     // _rosterLoading = false
     // _rosterDirty = false
 
     // adding this fails at life
-    // _roster.setSubscriptionMode(Roster.SubscriptionMode.accept_all)
-    _roster.addRosterListener(new RosterListener(){
-      def entriesAdded(args: Collection[Jid]) = {
-        log.info("entires added")
-        // _rosterDirty = true
-        // _mapsDirty = true
-        // TBD
-      }
-      def entriesDeleted(args: Collection[Jid]) = {
-        log.info("entires deleted")
-        pprint.log(args, "deleted entries")
-        // _rosterDirty = true
-        // _mapsDirty = true
-        // TBD
-      }
-      def entriesUpdated(args: Collection[Jid]) = {
-        log.info("entires updated")
-        // _rosterDirty = true
-        // _mapsDirty = true
-        // TBD
-      }
-      def presenceChanged(args: Presence) = {
-        // log.info(s"presence changed")
-        // _rosterDirty = true
-        // _mapsDirty = true
-        // TBD
-      }
-    })
 
     val chatmanager = ChatManager.getInstanceFor(connection);
 
@@ -174,12 +146,18 @@ with ActorLogging {
         PingManager.getInstanceFor(connection).pingMyServer()
       }
 
-    case MakeRosterDirty() =>
-      log.info("dirty roster")
-      _rosterDirty = true;
-
     case f:FindUser => 
       searcher forward f
+
+    case UserList() =>
+      log.info("IN USER LIST")
+      useraggregator ! UserList()
+
+    case UserListResponse(users) =>
+      log.info(s"users head: ${users.head}")
+      _usersCache = users map { u => u }
+      log.info(s"users head: ${_usersCache.head}")
+
 
     // case f:FindUser =>
     //   log.info(s"find: ${f} and ${f.search}")
@@ -234,54 +212,54 @@ with ActorLogging {
       //   con pipeTo sender
 
 
-    case rq: ProfileRQ =>
-      val pp = Promise[Profile]()
-      val f = Future {
-        counter = System.currentTimeMillis()
-        connection.sendIqWithResponseCallback(ProfileIQ(rq.jid), new StanzaListener() {
-          def processStanza(packet: Stanza) = {
-            if (packet != null && packet.isInstanceOf[ProfileIQ]) {
-              pp.success(
-                Profile(packet.asInstanceOf[ProfileIQ])
-              )
-            } else {
-              pprint.log(rq, "Failure")
-              pp.failure(
-                throw new Exception(s"failed ${rq.jid}"))
-            }
-          }
-        })
-      } 
-      pp.future pipeTo sender
+    // case rq: ProfileRQ =>
+    //   val pp = Promise[Profile]()
+    //   val f = Future {
+    //     counter = System.currentTimeMillis()
+    //     connection.sendIqWithResponseCallback(ProfileIQ(rq.jid), new StanzaListener() {
+    //       def processStanza(packet: Stanza) = {
+    //         if (packet != null && packet.isInstanceOf[ProfileIQ]) {
+    //           pp.success(
+    //             Profile(packet.asInstanceOf[ProfileIQ])
+    //           )
+    //         } else {
+    //           pprint.log(rq, "Failure")
+    //           pp.failure(
+    //             throw new Exception(s"failed ${rq.jid}"))
+    //         }
+    //       }
+    //     })
+    //   } 
+    //   pp.future pipeTo sender
 
-    case entry: RosterEntry =>
-      val req = for {
-        p <- (profile ? ProfileRQ(entry.getUser())).mapTo[Profile]
-      } yield { 
-		User(
-          name     = entry.getName(),
-          jid      = entry.getUser(),
-          nick     = p.mention_name,
-          email    = p.email,
-          timezone = Timezone(p.timezone, p.offset),
-          entry    = entry
-        ) 
-      } 
-      req pipeTo sender
+    // case entry: RosterEntry =>
+    //   val req = for {
+    //     p <- (profile ? ProfileRQ(entry.getUser())).mapTo[Profile]
+    //   } yield { 
+	// 	User(
+    //       name     = entry.getName(),
+    //       jid      = entry.getUser(),
+    //       nick     = p.mention_name,
+    //       email    = p.email,
+    //       timezone = Timezone(p.timezone, p.offset),
+    //       entry    = entry
+    //     ) 
+    //   } 
+    //   req pipeTo sender
 
-    case RosterList() =>
-      log.info("roster list request")
-      Future {
-        if( _rosterDirty == false ) {
-          log.info("CACHED ROSTER")
-          _rosterCache
-        } else {
-          _roster.reloadAndWait()
-          _rosterDirty = false
-          _rosterCache = _roster.getEntries().asScala.toList
-          _rosterCache //needs to be here
-        }
-      } pipeTo sender
+    // case RosterList() =>
+    //   log.info("roster list request")
+    //   Future {
+    //     if( _rosterDirty == false ) {
+    //       log.info("CACHED ROSTER")
+    //       _rosterCache
+    //     } else {
+    //       _roster.reloadAndWait()
+    //       _rosterDirty = false
+    //       _rosterCache = _roster.getEntries().asScala.toList
+    //       _rosterCache //needs to be here
+    //     }
+    //   } pipeTo sender
 
     // case UserList() =>
     //   log.info("user list request")
@@ -336,91 +314,91 @@ with ActorLogging {
     //   }
     //   out pipeTo sender
 
-    case UserList() =>
-      log.info("user list request")
-      val req = for {
-        roster <- (self ? RosterList()).mapTo[List[RosterEntry]]
-        userlist <- 
-          if(_usersDirty == true) {
-            log.info("fresh users to map")
-            _usersDirty = false
-            counter = System.currentTimeMillis()
-            Future.sequence {
-              val len = roster.length
-              var i = 1
-              while(100*i < len) {
-                roster.take(100*i) map { re =>
-                  Thread.sleep(100)
-                  for { user <- (self ? re).mapTo[User] } yield {
-                    user
-                  }
-                }
-                i += 1
-                Thread.sleep(5000) //550
-              }
-              roster.slice(100*i-100,len) map { re =>
-                for { user <- (self ? re).mapTo[User] } yield {
-                  user
-                }
-              }
-              // val len = roster.length
-              // val s = len/3
-              // val m = len - len/3
-              // val tip = roster.take(len/3) map { re =>
-              //   for {user <- (self ? re).mapTo[User]} yield {
-              //     user
-              //   }
-              // }
-              //
-              // log.info(s"TIP DONE ${tip.length}")
-              // val mid = roster.slice(len/3,2*len/3) map { re =>
-              //   for {user <- (self ? re).mapTo[User]} yield {
-              //     user
-              //   }
-              // }
-              //
-              // val num = 2*len/3 + 318
-              // val delta = len-num
-              // log.info(s"MID DONE ${mid.length}")
-              // log.info(s"len: ${len} num: ${num} delta: ${len-num}")
-              // val end = roster.slice(2*len/3,num) map { re =>
-              //   for {user <- (self ? re).mapTo[User]} yield {
-              //     user
-              //   }
-              // }
-              //
-              // log.info(s"END DONE ${end.length}")
-              //
-              // val end2 = roster.slice(num,num +delta/4) map { re =>
-              //   pprint.log(re,"roster entry")
-              //   for {user <- (self ? re).mapTo[User]} yield {
-              //     println(s"nick: ${user.nick} ${re.getName()}")
-              //     user
-              //   }
-              // }
-              //
-              // log.info(s"END DONE 2 ${end2.length}")
-              //
-              // val end3 = roster.slice(num + delta/4,num + delta/4) map { re =>
-              //   pprint.log(re,"roster entry")
-              //   for {user <- (self ? re).mapTo[User]} yield {
-              //     println(s"nick: ${user.nick} ${re.getName()}")
-              //     user
-              //   }
-              // }
-              // log.info(s"END DONE 3 ${end3.length}")
-              // Thread.sleep(5000)
-              // tip ++ mid ++ end ++ end2 //++ end3
-            }
-          } else {
-              log.info("USERS CACHED")
-              Future { _usersCache }
-          }
-      } yield { 
-        _usersCache = userlist
-        userlist
-      }
-      req pipeTo sender
+    // case UserList() =>
+    //   log.info("user list request")
+    //   val req = for {
+    //     roster <- (self ? RosterList()).mapTo[List[RosterEntry]]
+    //     userlist <- 
+    //       if(_usersDirty == true) {
+    //         log.info("fresh users to map")
+    //         _usersDirty = false
+    //         counter = System.currentTimeMillis()
+    //         Future.sequence {
+    //           val len = roster.length
+    //           var i = 1
+    //           while(100*i < len) {
+    //             roster.take(100*i) map { re =>
+    //               Thread.sleep(100)
+    //               for { user <- (self ? re).mapTo[User] } yield {
+    //                 user
+    //               }
+    //             }
+    //             i += 1
+    //             Thread.sleep(5000) //550
+    //           }
+    //           roster.slice(100*i-100,len) map { re =>
+    //             for { user <- (self ? re).mapTo[User] } yield {
+    //               user
+    //             }
+    //           }
+    //           // val len = roster.length
+    //           // val s = len/3
+    //           // val m = len - len/3
+    //           // val tip = roster.take(len/3) map { re =>
+    //           //   for {user <- (self ? re).mapTo[User]} yield {
+    //           //     user
+    //           //   }
+    //           // }
+    //           //
+    //           // log.info(s"TIP DONE ${tip.length}")
+    //           // val mid = roster.slice(len/3,2*len/3) map { re =>
+    //           //   for {user <- (self ? re).mapTo[User]} yield {
+    //           //     user
+    //           //   }
+    //           // }
+    //           //
+    //           // val num = 2*len/3 + 318
+    //           // val delta = len-num
+    //           // log.info(s"MID DONE ${mid.length}")
+    //           // log.info(s"len: ${len} num: ${num} delta: ${len-num}")
+    //           // val end = roster.slice(2*len/3,num) map { re =>
+    //           //   for {user <- (self ? re).mapTo[User]} yield {
+    //           //     user
+    //           //   }
+    //           // }
+    //           //
+    //           // log.info(s"END DONE ${end.length}")
+    //           //
+    //           // val end2 = roster.slice(num,num +delta/4) map { re =>
+    //           //   pprint.log(re,"roster entry")
+    //           //   for {user <- (self ? re).mapTo[User]} yield {
+    //           //     println(s"nick: ${user.nick} ${re.getName()}")
+    //           //     user
+    //           //   }
+    //           // }
+    //           //
+    //           // log.info(s"END DONE 2 ${end2.length}")
+    //           //
+    //           // val end3 = roster.slice(num + delta/4,num + delta/4) map { re =>
+    //           //   pprint.log(re,"roster entry")
+    //           //   for {user <- (self ? re).mapTo[User]} yield {
+    //           //     println(s"nick: ${user.nick} ${re.getName()}")
+    //           //     user
+    //           //   }
+    //           // }
+    //           // log.info(s"END DONE 3 ${end3.length}")
+    //           // Thread.sleep(5000)
+    //           // tip ++ mid ++ end ++ end2 //++ end3
+    //         }
+    //       } else {
+    //           log.info("USERS CACHED")
+    //           Future { _usersCache }
+    //       }
+    //   } yield { 
+    //     _usersCache = userlist
+    //     userlist
+    //   }
+    //   req pipeTo sender
 
       //   log.info("in the user list yield")
       //   userlist
@@ -502,33 +480,41 @@ with ActorLogging {
     //   )
 
     case UserMap() =>
-      log.info("user map request")
-      val req = for {
-        ulist <- (self ? UserList()).mapTo[List[User]]
-      } yield(ulist.map(u => u.jid -> u).toMap)
-      req pipeTo sender
+      // Future { 
+      //   log.info(s"user map request ${_usersCache.length}")
+      //   _usersCache.map(u => u.jid -> u).toMap 
+      // } pipeTo sender
+      val out = _usersCache.map(u => u.jid -> u).toMap
+      pprint.log(out)
+      sender() ! _usersCache.map(u => u.jid -> u).toMap
+      
 
     case EmailMap() =>
       log.info("email map request")
-      (for {
-        ulist <- (self ? UserList()).mapTo[List[User]]
-      } yield {
-        ulist.map(u => u.email -> u).toMap
-      }) pipeTo sender
+      val out = _usersCache.map(u => u.nick -> u).toMap
+      log.info(s"out len ${out.size}")
+      pprint.log(out)
+      sender() ! _usersCache.map(u => u.email -> u).toMap
+      // (for {
+      //   ulist <- (self ? UserList()).mapTo[List[User]]
+      // } yield {
+      //   ulist.map(u => u.email -> u).toMap
+      // }) pipeTo sender
 
     case NickMap() =>
-      log.info("nick map request")
-      val req = for {
-        ulist <- (self ? UserList()).mapTo[List[User]]
-      } yield(ulist.map(u => u.nick -> u).toMap)
-      req pipeTo sender
+      // Future { 
+      //   log.info(s"nick map request ${_usersCache.length}")
+      //   _usersCache.map(u => u.nick -> u).toMap 
+      // } pipeTo sender
+      log.info(s"nick map request ${_usersCache.length}")
+      val out = _usersCache.map(u => u.nick -> u).toMap
+      log.info(s"out len ${out.size}")
+      pprint.log(out)
+      sender() ! _usersCache.map(u => u.nick -> u).toMap
+      
 
     case NameMap() =>
-      log.info("name map request")
-      val req = for {
-        ulist <- (self ? UserList()).mapTo[List[User]]
-      } yield(ulist.map(u => u.name -> u).toMap)
-      req pipeTo sender
+      sender() ! _usersCache.map(u => u.name -> u).toMap 
 
     case JoinRoom(room, chatpass) =>
       log.info("joining room")
