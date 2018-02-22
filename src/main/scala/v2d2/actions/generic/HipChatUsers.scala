@@ -164,8 +164,6 @@ case class GetAllHipUsers()
 // import scala.concurrent.ExecutionContext.Implicits.global
 class HipChatUserAct 
 extends Actor 
-// with HipLinkProtocol
-// with HipUserProtocol
 with HipUsersProtocol
 with ActorLogging {
   import system.dispatcher
@@ -232,11 +230,11 @@ with ActorLogging {
     //       pprint.log(entity)
     //       HipUsers(entity.items ++ users.items, entity.links, entity.maxResults, entity.startIndex)
     //     })
-    case GetAllHipUsers() => new HCUserAggregator(sender())
+    case GetAllHipUsers() => new HipUserAggregator(sender())
     case _ => context.stop(self)
   }
 
-  class HCUserAggregator(originalSender: ActorRef) {
+  class HipUserAggregator(originalSender: ActorRef) {
     import context.dispatcher
 
     val userAcquirer = context.actorOf(Props(classOf[HipChatUserAct]))
