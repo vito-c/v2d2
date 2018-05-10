@@ -1,34 +1,23 @@
 package v2d2.client.core
 
-import java.util.Collection
-
-import scala.collection.JavaConverters._
-import scala.collection.immutable
-import scala.concurrent.{Future, Promise}
-import scala.concurrent.duration._
-import scala.util.{Failure, Success}
-import org.jxmpp.jid.impl.JidCreate
-import org.jxmpp.jid.Jid
 import java.lang.System
-import v2d2.actions.generic.HipUsers
+
+import scala.collection.immutable
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 import akka.actor.{Actor, ActorContext, ActorLogging, ActorSystem, Props}
-import akka.pattern.{ask, pipe}
-import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
+import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import org.jivesoftware.smack.StanzaListener
 import org.jivesoftware.smack.chat.{Chat, ChatManager, ChatManagerListener, ChatMessageListener}
-import org.jivesoftware.smack.packet.{Message, Presence, Stanza}
-import org.jivesoftware.smack.roster.{Roster, RosterEntry, RosterListener}
+import org.jivesoftware.smack.packet.Message
 import org.jivesoftware.smack.tcp.XMPPTCPConnection
 import org.jivesoftware.smackx.muc.MultiUserChatManager
 import org.jivesoftware.smackx.ping.PingManager
-import org.jivesoftware.smackx.xhtmlim.XHTMLManager
+import org.jxmpp.jid.impl.JidCreate
 import org.jxmpp.util.XmppStringUtils
 import v2d2.V2D2
 import v2d2.actions.generic._
-import v2d2.actions.generic.HipChatUsersAct
 import v2d2.actions.generic.protocol._
 import v2d2.actions.love._
 import v2d2.actions.pager._
@@ -37,15 +26,12 @@ import v2d2.client._
 import v2d2.mtg._
 import v2d2.parsers._
 
-case class XUserList(roster:List[RosterEntry])
 class XMPPActor(connection: XMPPTCPConnection) 
 extends Actor 
 with ActorLogging {
 
-  // import system.dispatcher
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
-  // implicit val timeout = Timeout(130.seconds)
   implicit val timeout = Timeout(25.seconds)
 
   val chatManager: ChatManager = ChatManager.getInstanceFor(connection)
@@ -118,24 +104,24 @@ with ActorLogging {
           child ! imsg 
       }
 
-    // This is a test remove it when done
-    case xhr: XHTMLResponse =>
-      val xh = xhr.response
-      val msg = new Message()
-      msg.setBody("&lt;pre&gt;test notif&lt;/pre&gt;")
-      // msg.setBody("this is a test")
-      val xhtmlBody = xh.dump()
-      // self ! s"html ${xhtmlBody}"
-      // Add the XHTML text to the message
-      // msg.addExtension(xh.notif())
-      XHTMLManager.addBody(msg, xhtmlBody);
-// <x xmlns='http://hipchat.com/protocol/muc#room'>
-// <message_format>html</message_format><color>purple</color><type>system</type><notify>0</notify></x>
-      log.info(s"${msg}")
-      // Send the message that contains the XHTML
-      // self ! s"msg ${msg}"
-      ChatManager.getInstanceFor(connection)
-        .createChat(JidCreate.entityFrom(xhr.originalMsg.fromJid)).sendMessage(msg)
+//     // This is a test remove it when done
+//     case xhr: XHTMLResponse =>
+//       val xh = xhr.response
+//       val msg = new Message()
+//       msg.setBody("&lt;pre&gt;test notif&lt;/pre&gt;")
+//       // msg.setBody("this is a test")
+//       val xhtmlBody = xh.dump()
+//       // self ! s"html ${xhtmlBody}"
+//       // Add the XHTML text to the message
+//       // msg.addExtension(xh.notif())
+//       XHTMLManager.addBody(msg, xhtmlBody);
+// // <x xmlns='http://hipchat.com/protocol/muc#room'>
+// // <message_format>html</message_format><color>purple</color><type>system</type><notify>0</notify></x>
+//       log.info(s"${msg}")
+//       // Send the message that contains the XHTML
+//       // self ! s"msg ${msg}"
+//       ChatManager.getInstanceFor(connection)
+//         .createChat(JidCreate.entityFrom(xhr.originalMsg.fromJid)).sendMessage(msg)
 
     case h: HipUsersReq =>
       hcusers forward h
@@ -154,9 +140,9 @@ with ActorLogging {
       useraggregator ! UserList()
 
     case UserListResponse(users) =>
-      log.info(s"users head: ${users.head}")
+      pprint.log(users.head, "users head")
       _usersCache = users map { u => u }
-      log.info(s"users head: ${_usersCache.head}")
+      pprint.log(_usersCache.head, "users head cache")
 
 
     // case f:FindUser =>
@@ -480,12 +466,7 @@ with ActorLogging {
     //   )
 
     case UserMap() =>
-      // Future { 
-      //   log.info(s"user map request ${_usersCache.length}")
-      //   _usersCache.map(u => u.jid -> u).toMap 
-      // } pipeTo sender
-      val out = _usersCache.map(u => u.jid -> u).toMap
-      pprint.log(out)
+      log.info("usermap request")
       sender() ! _usersCache.map(u => u.jid -> u).toMap
       
 

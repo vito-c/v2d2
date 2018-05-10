@@ -162,34 +162,46 @@ case class GetAllHipUsers()
 // }
 
 // import scala.concurrent.ExecutionContext.Implicits.global
+// class HipChatUserAct 
+// extends Actor 
+// with HipUsersProtocol
+// with ActorLogging {
+//   import system.dispatcher
+//   implicit val system = ActorSystem()
+//   implicit val materializer: ActorMaterializer = ActorMaterializer()
+//   implicit val timeout = Timeout(300.seconds)
+//
+//   def receive: Receive = {
+//     case user: HipUser =>
+//       (for {
+//          response <- Http().singleRequest(
+//            HttpRequest(
+//              method = HttpMethods.GET, 
+//              headers = List(headers.Accept(MediaTypes.`application/json`)),
+//              uri = s"${user.links.self}?auth_token=${V2D2.hcapi}"))
+//          limit <- response.headers.filter( _.lowercaseName() == "x-ratelimit-limit" )
+//          entity <- Unmarshal(response.entity).to[HipUser]
+//        } yield { 
+//          log.info(s"RATE LIMIT IS: ${limit.value()}")
+//          entity }) pipeTo sender()
+//   }
+// }
+
 class HipChatUserAct 
 extends Actor 
 with HipUsersProtocol
 with ActorLogging {
   import system.dispatcher
   implicit val system = ActorSystem()
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
-  implicit val timeout = Timeout(300.seconds)
-
+  implicit val materializer = ActorMaterializer()
   def receive: Receive = {
-    case p: HipUser =>
-      (for {
-         response <- Http().singleRequest(
-           HttpRequest(
-             method = HttpMethods.GET, 
-             headers = List(headers.Accept(MediaTypes.`application/json`)),
-             uri = s"${p.links.self}?auth_token=${V2D2.hcapi}"))
-         entity <- Unmarshal(response.entity).to[HipUser]
-       } yield { entity }) pipeTo sender()
-
     case req: GetHipUsers =>
       val start = req.start
       val max = req.max
-      log.info(s"get: https://hipchat.rallyhealth.com/v2/user?start-index=${start}&max-results=${max}&auth_token=${V2D2.hcapi}")
       (for {
          response <- Http().singleRequest(
            HttpRequest(
-             method = HttpMethods.GET, 
+             method = HttpMethods.GET,
              headers = List(headers.Accept(MediaTypes.`application/json`)),
              uri = s"https://hipchat.rallyhealth.com/v2/user?start-index=${start}&max-results=${max}&auth_token=${V2D2.hcapi}"))
          entity <- Unmarshal(response.entity).to[HipUsers]
@@ -211,7 +223,7 @@ class HipChatUsersAct
 extends Actor 
 with Aggregator
 with ActorLogging {
-  import system.dispatcher
+
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
   implicit val timeout = Timeout(300.seconds)
@@ -235,32 +247,43 @@ with ActorLogging {
   }
 
   class HipUserAggregator(originalSender: ActorRef) {
+    pprint.log("INSIDE HIP usr agg: " + originalSender)
+
     import context.dispatcher
 
     val userAcquirer = context.actorOf(Props(classOf[HipChatUserAct]))
     context.system.scheduler.scheduleOnce(300.second, self, TimedOut)
     userAcquirer ! GetHipUsers()
     var users = List.empty[HipUser]
-    val usersFinal = ArrayBuffer.empty[HipUser]
+    var usersFinal = ArrayBuffer.empty[HipUser]
 	var index = 0
 
     val handle = expect {
-      case peep: HipUser =>
-        usersFinal += peep
-		index += 1
-        log.info(s"ADDING USER final: ${usersFinal.length} users: ${users.length}")
-        if (users.length == usersFinal.length) {
-          log.info("ALL DONE DONE DONE")
-          processUsers()
-        } else {
-          userAcquirer ! users(index)
-        }
+      // case peep: HipUser =>
+      //   usersFinal += peep
+		// index += 1
+      //   log.info(s"ADDING USER final: ${usersFinal.length} users: ${users.length}")
+      //   if (users.length == usersFinal.length) {
+      //     log.info("ALL DONE DONE DONE")
+      //     processUsers()
+      //   } else {
+      //     userAcquirer ! users(index)
+      //   }
 
       case peeps: HipUsers =>
         if (peeps.links.next == None) {
           users = peeps.items.toList
           log.info(s"USERS ${users.length} PEEPS: ${peeps.items.length}")
-          userAcquirer ! users.head
+          pprint.log(users.head, "users done")
+
+          usersFinal = users.to[ArrayBuffer]
+          log.info(s"ADDING USER final: ${usersFinal.length} users: ${users.length}")
+          if (users.length == usersFinal.length) {
+            log.info("ALL DONE DONE DONE")
+            processUsers()
+          } else {
+            log.info("BAD NEWS BAD NEWS")
+          }
         } else {
           // users = peeps.items.toList
           log.info(s"USERS ${users.length} PEEPS: ${peeps.items.length}")
@@ -300,6 +323,7 @@ with ActorLogging {
 
     def processUsers(): Unit = {
       unexpect(handle)
+      pprint.log(usersFinal.head, "process")
       originalSender ! HipUsersResponse(usersFinal.toList)
       context.stop(self)
     }

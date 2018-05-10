@@ -39,6 +39,7 @@ object V2D2
   val conf = ConfigFactory.load("v2d2.conf")
   val creds = ConfigFactory.load("creds.conf")
   val rooms = conf.getList("v2d2.rooms").toList
+  val deployment = conf.getString("v2d2.deployment")
 
   val uid: String       = creds.getString("creds.user")
   val port: Int         = creds.getInt("creds.port")
@@ -73,6 +74,10 @@ object V2D2
     case NonFatal(e) =>
       log.error("Login or connection exception", e)
       if (_connection.isConnected) _connection.disconnect()
+  }
+
+  def dev(): Boolean = {
+    if (deployment == "development") true else false
   }
 
   def who(prop: String): String = {
