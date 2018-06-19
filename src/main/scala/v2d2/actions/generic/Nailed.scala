@@ -19,7 +19,7 @@ class NailedIt extends Actor with ActorLogging {
     case imsg: IMessage =>
       Nailed(imsg) match {
         case Some(cmd) =>
-          context.parent ! Response(imsg, "" + Random.shuffle(pics).head)
+          context.parent ! Response(imsg, "" + Random.shuffle(pics).head, None)
         case _ => None
       }
     case _ => None

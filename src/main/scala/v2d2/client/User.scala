@@ -1,6 +1,8 @@
 package v2d2.client
 
 import org.jivesoftware.smack.roster.RosterEntry
+import org.jxmpp.jid.BareJid
+import v2d2.actions.generic.hipchat.HipProfile
 
 case class Timezone(
   zone: String, // UTC, US/Eastern, America/Los_Angeles etc
@@ -8,10 +10,11 @@ case class Timezone(
 )
 // jid is set to room jid would be nice to have actual jid
 case class User(
-  name     : String,
-  jid      : String,
-  nick     : String,
-  email    : String,
-  timezone : Timezone,
-  entry    : RosterEntry
+  name    :String,
+  jid     :BareJid,
+  nick    :String,
+  email   :String,
+  timezone:Timezone,
+  entry   :RosterEntry,
+  profile :HipProfile
 )

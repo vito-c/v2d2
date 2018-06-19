@@ -1,5 +1,6 @@
 package v2d2.actions.generic.protocol
 
+import v2d2.actions.generic.HipNotif
 import v2d2.client.IMessage
 import fastparse._
 import fastparse.core.Parsed
@@ -14,7 +15,7 @@ import spray.json._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 
-case class Response(originalMsg: IMessage, response: String)
+case class Response(originalMsg: IMessage, response: String, notification:Option[HipNotif] = None)
 case class Relay(imsg: IMessage)
 // case class ProfileReq(target: String)
 

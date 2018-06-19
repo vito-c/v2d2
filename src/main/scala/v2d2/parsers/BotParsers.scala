@@ -23,6 +23,7 @@ trait BotCombinators {
     import fastparse.all._
     NoTrace(" ".rep)
   }
+  val symbols = P(CharIn(' ' to '/')|CharIn(':' to '@')|CharIn('[' to '`')|CharIn('{' to '~'))
   def ic(str:String) = { IgnoreCase(str) }
   val at: P[Unit] = P("@")
   val letter = CharIn('A' to 'Z') | CharIn('a' to 'z')
@@ -31,13 +32,14 @@ trait BotCombinators {
   val txt = P(alphanum | CharIn(".`',-_$\"")) 
   val txts = P(txt.rep(1))
   val wnick: P[String] = P((at ~ alphanum.rep(1)).!)
+  val znick: P[String] =P(at.? ~/ ((!(symbols) ~ AnyChar).rep).!)
 
   val jid: P[String] = P((txts ~ at ~ "chat.btf.hipchat.com").!)
   val email: P[String] = P((txts ~ at ~ alphanum.rep(2) ~ "." ~ ltrs).!)
   val nicky: P[String] = P(at ~ alphanum.rep(1).!)
   val fname: P[String] = P((letter.rep(2) ~ ws ~ letter.rep(2)).!)
   val uname: P[String] = P((letter.rep(2) ~ "." ~ letter.rep(1)).!)
-  val name:  P[String] = P(letter.rep(2).!)
+  val name:  P[String] = P((letter.rep(1)).!)
 
   val ajid: P[JID]        = P(jid.map(JID(_)))
   val aemail: P[Email]    = P(email.map(Email(_)))

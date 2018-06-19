@@ -73,8 +73,8 @@ with ActorLogging {
     case j: JID =>
       log.info("jid request")
       (for {
-        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
-        usrs <- Future{searchMap(jmap, j.needle)}
+        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
+        usrs <- Future{searchMap(jmap.users, j.needle)}
       } yield { 
         usrs
       }) pipeTo sender

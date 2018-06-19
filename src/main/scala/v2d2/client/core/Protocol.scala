@@ -4,6 +4,7 @@ import v2d2.parsers.{Blackspace,BotCombinators}
 import v2d2.client.IMessage
 import scala.collection.immutable.Queue
 import akka.actor.ActorRef
+import v2d2.actions.generic.hipchat.HipProfile
 import v2d2.client.User
 
 trait ISearchable{ 
@@ -17,10 +18,12 @@ case class UName(needle: String) extends ISearchable
 case class Name(needle: String) extends ISearchable
 
 case class UserListResponse(users:List[User])
+case class UserMapResponse(users:Map[String,User])
 
 case class MagicCards()
 case class JoinRoom(room: String, chatpass: Option[String])
-case class RosterList()
+// case class AddUsers(names:List[String])
+case class AcquireUser(names:List[String])
 case class UserList()
 case class UserMap()
 case class EmailMap()
@@ -29,6 +32,7 @@ case class NickMap()
 case class ProfileRQ(jid: String)
 case class MakeRosterDirty()
 case class Ping()
+case class HipProfileList(profiles: List[HipProfile])
 // case class SearchUserMap(searchable: ISearchable, map:Map[String,User])
 // case class FindUser(search: String)
 // case class FindUser(

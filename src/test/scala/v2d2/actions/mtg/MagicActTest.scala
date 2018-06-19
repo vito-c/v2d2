@@ -1,5 +1,6 @@
 package v2d2.mtg
 
+import org.apache.commons.text.similarity._
 import akka.actor.ActorSystem
 import v2d2.actions.generic.HipNotif
 import v2d2.actions.generic.protocol.Response
@@ -69,7 +70,7 @@ with BeforeAndAfterAll {
 
   "A MagicAct" must {
     "return cards" in {
-      val magic = system.actorOf(Props(classOf[MagicAct]))
+      val magic = system.actorOf(Props(classOf[MagicAct], None))
       val content = magic ? MagicCards()
       content onComplete {
         case Success(sets) =>
@@ -86,56 +87,56 @@ with BeforeAndAfterAll {
     }
     
     "list scores correctly search w/o punctuation" in {
-      val actorRef = TestActorRef[MagicAct]
-      val magic = actorRef.underlyingActor
+      val actorRef = TestActorRef(Props(new MagicAct(None)))
+      val magic = actorRef.underlyingActor.asInstanceOf[MagicAct]
       val s1 = magic.scores("the fox's fur", "fox's")
       val s2 = magic.scores("the fox's fur", "foxs")
       assert(s1 == s2)
     }
 
     "list scores correctly" in {
-      val actorRef = TestActorRef[MagicAct]
-      val magic = actorRef.underlyingActor
+      val actorRef = TestActorRef(Props(new MagicAct(None)))
+      val magic = actorRef.underlyingActor.asInstanceOf[MagicAct]
       val s = magic.scores("the quick brown fox", "fox")
       assert(s.size > 1)
       assert(s.head == 0)
     }
 
     "list scores correctly multi input" in {
-      val actorRef = TestActorRef[MagicAct]
-      val magic = actorRef.underlyingActor
+      val actorRef = TestActorRef(Props(new MagicAct(None)))
+      val magic = actorRef.underlyingActor.asInstanceOf[MagicAct]
       val s = magic.scores("sun", "sun avatar")
       assert(s.size == 1)
       assert(s.head == 0)
     }
 
     "list best match for card" in {
-      val actorRef = TestActorRef[MagicAct]
-      val magic = actorRef.underlyingActor
+      val actorRef = TestActorRef(Props(new MagicAct(None)))
+      val magic = actorRef.underlyingActor.asInstanceOf[MagicAct]
       val s = magic.lookupName("yun", testData)
       assert(s.size == 1)
       assert(s.head.name == "yun")
     }
 
     "list best match for card grouped on unique name" in {
-      val actorRef = TestActorRef[MagicAct]
-      val magic = actorRef.underlyingActor
+      val actorRef = TestActorRef(Props(new MagicAct(None)))
+      val magic = actorRef.underlyingActor.asInstanceOf[MagicAct]
       val s = magic.lookupName("gun", testData)
       assert(s.size == 1)
       assert(s.head.name == "gun")
     }
 
     "list best match for card grouped on unique name not exact" in {
-      val actorRef = TestActorRef[MagicAct]
-      val magic = actorRef.underlyingActor
+      val actorRef = TestActorRef(Props(new MagicAct(None)))
+      val magic = actorRef.underlyingActor.asInstanceOf[MagicAct]
       val s = magic.lookupName("gab lab", testData)
       assert(s.size == 1)
       assert(s.head.name == "fab lab")
     }
 
     "list best match for card with test data" in {
-      val actorRef = TestActorRef[MagicAct]
-      val magic = actorRef.underlyingActor
+      val actorRef = TestActorRef(Props(new MagicAct(None)))
+      val magic = actorRef.underlyingActor.asInstanceOf[MagicAct]
       val s = magic.lookupName("sun avatar", testData)
       assert(s.size == 1)
       assert(s.head.name == "xxxx sun avatar xxxx")
@@ -147,7 +148,7 @@ with BeforeAndAfterAll {
 
       val cs = CardNameSearch(tmsg, "sun's avatar")
       val parent = system.actorOf(Props(new Actor {
-        val child = context.actorOf(Props(classOf[MagicAct]), "child")
+        val child = context.actorOf(Props(classOf[MagicAct], None), "child")
         def receive = {
           case x if sender == child => 
             x match  {
@@ -175,7 +176,7 @@ with BeforeAndAfterAll {
       val tmsg: IMessage = new TMessage(TMsgData("card name is zc?"))
       val cs = CardNameSearch(tmsg, "zc")
       val parent = system.actorOf(Props(new Actor {
-        val child = context.actorOf(Props(classOf[MagicAct]), "child")
+        val child = context.actorOf(Props(classOf[MagicAct], None), "child")
         def receive = {
           case x if sender == child => 
             x match  {
@@ -207,13 +208,19 @@ with BeforeAndAfterAll {
       val tmsg: IMessage = new TMessage(TMsgData(s"card name is ${src}?"))
       val cs = CardNameSearch(tmsg, s"${src}")
       val parent = system.actorOf(Props(new Actor {
-        val child = context.actorOf(Props(classOf[MagicAct]), "child")
+        val child = context.actorOf(Props(classOf[MagicAct], None), "child")
         def receive = {
           case x if sender == child => 
             x match  {
               case r:Response =>
                 println("==========================")
-                assert(r.response == f"(shrug) your best match was ${res} with ${pcent*100}%1.2f" + "%")
+                val jw = new JaroWinklerDistance()
+                val jcent = jw(src, res)
+                val p = "%"
+                assert(r.response == f"""(shrug) your best match was 
+                  |${res} with ${pcent*100}%1.2f$p
+                  |and score ${jcent*100}%1.2f$p""".stripMargin.replaceAll("\n", " "))
+                 // Scuzzback Scrapper with 25.00% and score 36.11
                 println("==========================")
               case a:HipNotif =>
                 println("==========================")
@@ -235,7 +242,7 @@ with BeforeAndAfterAll {
       val tmsg: IMessage = new TMessage(TMsgData("card name is lee swamp?"))
       val cs = CardNameSearch(tmsg, "lee swamp")
       val parent = system.actorOf(Props(new Actor {
-        val child = context.actorOf(Props(classOf[MagicAct]), "child")
+        val child = context.actorOf(Props(classOf[MagicAct], None), "child")
         def receive = {
           case x if sender == child => 
             x match  {
@@ -252,7 +259,7 @@ with BeforeAndAfterAll {
                     |<td><img src="https://magiccards.info/scans/en/m12/238.jpg" height="321"</td>
                     |<td><img src="https://magiccards.info/scans/en/ddr/65.jpg" height="321"</td>
                     |<td><img src="https://magiccards.info/scans/en/me2/243.jpg" height="321"</td>
-                 |</tr></table>""".stripMargin.replaceAll("\n", ""),"1234")
+                 |</tr></table>""".stripMargin.replaceAll("\n", ""),"120")
                 assert(e.toString == a.toString)
                 println("==========================")
               case _ => assert(false)
@@ -271,7 +278,7 @@ with BeforeAndAfterAll {
       val tmsg: IMessage = new TMessage(TMsgData("card name is sun?"))
       val cs = CardNameSearch(tmsg, "sun")
       val parent = system.actorOf(Props(new Actor {
-        val child = context.actorOf(Props(classOf[MagicAct]), "child")
+        val child = context.actorOf(Props(classOf[MagicAct], None), "child")
         def receive = {
           case x if sender == child => 
             x match  {

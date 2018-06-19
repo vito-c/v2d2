@@ -53,7 +53,7 @@ object WhenOnCall extends BotCombinators {
   val oncall: P[Unit] = P(
     IgnoreCase("on") ~ ws ~ 
     IgnoreCase("call") ~ ws)
-  val target: P[String] = P(email|wnick|fname|uname|name|IgnoreCase("i").!)
+  val target: P[String] = P(email|znick|fname|uname|IgnoreCase("i").!)
 
   val opt: P[String] = P(
     bot.? ~ whis.? ~ 

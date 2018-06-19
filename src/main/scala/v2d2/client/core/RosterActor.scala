@@ -1,15 +1,14 @@
 package v2d2.client.core
 
+import java.lang.System
 import java.util.Collection
-
+import org.jxmpp.jid.Jid
+import org.jxmpp.jid.impl.JidCreate
 import scala.collection.JavaConverters._
 import scala.collection.immutable
-import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
+import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
-import org.jxmpp.jid.impl.JidCreate
-import org.jxmpp.jid.Jid
-import java.lang.System
 import v2d2.actions.generic.HipUsers
 
 import akka.actor.{Actor, ActorContext, ActorLogging, ActorSystem, Props}
@@ -26,8 +25,8 @@ import org.jivesoftware.smackx.ping.PingManager
 import org.jivesoftware.smackx.xhtmlim.XHTMLManager
 import org.jxmpp.util.XmppStringUtils
 import v2d2.V2D2
-import v2d2.actions.generic._
 import v2d2.actions.generic.HipChatUsersAct
+import v2d2.actions.generic._
 import v2d2.actions.generic.protocol._
 import v2d2.actions.love._
 import v2d2.actions.pager._
@@ -38,7 +37,9 @@ import v2d2.mtg._
 import v2d2.parsers._
 
 
-case class RosterResponse(roster: List[RosterEntry])
+case class RosterList(roster: List[RosterEntry])
+case class Resources(names: List[String])
+
 class RosterActor(connection: XMPPTCPConnection) 
 extends Actor 
 with ActorLogging {
@@ -84,7 +85,33 @@ with ActorLogging {
     })
   }
 
+  private def getRoster(): RosterList = {
+    if( _rosterDirty == false ) {
+      log.info("CACHED ROSTER")
+      RosterList(_rosterCache)
+    } else {
+      _roster.reloadAndWait()
+      _rosterDirty = false
+      _rosterCache = _roster.getEntries().asScala.toList
+      log.info("ROSTER LOADED")
+      pprint.log(_rosterCache.take(2), "ROSTER CACHE SAMPLE")
+      RosterList(_rosterCache)
+    }
+  }
+
   def receive: Receive = {
+    // case TestUsers(names) =>
+    //   val ns = names.toSet
+    //   pprint.log(ns, "name set")
+    //   sender() ! RosterList(
+    //     _rosterCache filter { e => ns(e.getName()) })
+
+    case Resources(names) =>
+      val ns = names.toSet
+      pprint.log(ns, "name set")
+      sender() ! RosterList(
+        _rosterCache filter { e => ns(e.getName()) })
+
     case MakeRosterDirty() =>
       log.info("dirty roster")
       _rosterDirty = true;
@@ -103,18 +130,29 @@ with ActorLogging {
     //     ) 
     //   })
 
-    case RosterList() =>
+    case AcquireRoster(names) =>
       log.info("roster list request")
-      val res = if( _rosterDirty == false ) {
-        log.info("CACHED ROSTER")
-        RosterResponse(_rosterCache)
+      if( names != Nil && _rosterCache != Nil ) {
+        pprint.log(names, "ROSTER EXISTs AND NAMES EXIST")
+        self forward Resources(names)
+      } else if(names != Nil) {
+        pprint.log(names, "NAMES EXIST ONLY")
+        getRoster()
+        self forward Resources(names)
       } else {
-        _roster.reloadAndWait()
-        _rosterDirty = false
-        _rosterCache = _roster.getEntries().asScala.toList
-        log.info("ROSTER LOADED")
-        RosterResponse(_rosterCache)
+        // val res = if( _rosterDirty == false ) {
+        //   log.info("CACHED ROSTER")
+        //   RosterList(_rosterCache.take(2))
+        // } else {
+        //   _roster.reloadAndWait()
+        //   _rosterDirty = false
+        //   _rosterCache = _roster.getEntries().asScala.toList
+        //   log.info("ROSTER LOADED")
+        //   RosterList(_rosterCache.take(2))
+        // }
+        log.info("DEFAULT GET ROSTER ONLY")
+        sender() ! getRoster()
       }
-      sender() ! res
   }
+
 }

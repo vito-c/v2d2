@@ -75,7 +75,6 @@ with CardSetProtocol {
           }
         ) 
       req pipeTo sender
-
     
     case cs:CardNameSearch =>
       val content = for {
@@ -95,7 +94,7 @@ with CardSetProtocol {
           println(s"pc: ${pcent} score: ${score}")
           println("++++++++++++++++++++++++++++")
           if (cs.target.length < 3) {
-            context.parent ! Response(cs.imsg,"Try asking again with a longer string")
+            context.parent ! Response(cs.imsg,"Try asking again with a longer string",None)
           } else if ( 
             ((tlen == 3 || tlen == 4) && score > 1) ||
             ((tlen == 5 || tlen == 6) && score > 2) || pcent < 0.7 
@@ -107,7 +106,7 @@ with CardSetProtocol {
               cs.imsg,
               f"""(shrug) your best match was 
                   |${results.head.name} with ${pcent*100}%1.2f$p
-                  |and score ${jcent*100}%1.2f$p""".stripMargin.replaceAll("\n", " "))
+                  |and score ${jcent*100}%1.2f$p""".stripMargin.replaceAll("\n", " "), None)
           } else {
             val uri = "https://magiccards.info/scans/en/"
             val imgs = results collect {
@@ -121,7 +120,7 @@ with CardSetProtocol {
               context.parent ! Response(
                 cs.imsg, imgs.map { t =>
                   s"${t._2.name}: ${t._1}"
-                }.mkString("\n"))
+                }.mkString("\n"), None)
             } else {
               val h = if(imgs.size>4) 256 else 321
 
@@ -156,7 +155,7 @@ with CardSetProtocol {
           // }
 
         case Failure(t) =>
-          context.parent ! Response(cs.imsg, s"An error has occured: " + t.getMessage)
+          context.parent ! Response(cs.imsg, s"An error has occured: " + t.getMessage, None)
       }
 
     case imsg: IMessage =>

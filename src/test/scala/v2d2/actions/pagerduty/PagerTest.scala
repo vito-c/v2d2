@@ -54,40 +54,39 @@ class PagerSpec extends FlatSpec with Matchers {
   // onCallAssert("who is on call right now", "yo.mama", "parse yo.mama as the target")
   // onCallAssert("who is on call today", "yo.mama", "parse yo.mama as the target")
   // onCallAssert("who is on call for myteam", "myteam", "parse my team as the team name")
-  //
+
   whenOnCallAssert("when am i on call", "i", "parse i as the target")
   whenOnCallAssert("when is @foobar on call", "@foobar", "parse foobar as the target")
   whenOnCallAssert("when is @f on call", "@f", "parse f as the target")
   whenOnCallAssert("on call foo.bar@rallyhealth.com", "foo.bar@rallyhealth.com", "parse email for target")
   whenOnCallAssert("when is Foo Bar on call", "Foo Bar", "parse Foo Bar as the target")
-  whenOnCallAssert("when is Foo on call", "Foo", "parse Fox as the target")
   whenOnCallAssert("on call Foo Bar", "Foo Bar", "parse Foo Bar as the target")
   whenOnCallAssert("on call foo.bar", "foo.bar", "parse foo.bar as the target")
 
-  // onCallTeamsAssert("what are the on call teams?", None, "parse an on call team class")
-  // onCallTeamsAssert("on call teams?", None, "parse an on call team class")
-  //
-  // onCallTeamsAssert("foo on call team?", Some(List("foo")), "parse Some(List(\"foo\"))")
-  // onCallTeamsAssert("is foo on call team?", Some(List("foo")), "parse Some(List(\"foo\"))")
-  // onCallTeamsAssert("foo an on call team?", Some(List("foo")), "parse Some(List(\"foo\"))")
-  // onCallTeamsAssert("is foo an on call team?", Some(List("foo")), "parse Some(List(\"foo\"))")
-  // onCallTeamsAssert("is foo an on call teams?", Some(List("foo")), "parse Some(List(\"foo\"))")
-  //
-  // onCallTeamsAssert("are foo, baz on call teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
-  // onCallTeamsAssert("foo, baz on call teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
-  // onCallTeamsAssert("foo, baz, bar on call teams?", Some(List("foo", "baz", "bar")), "parse Some(List(\"foo\", \"baz\", \"bar\"))")
-  // onCallTeamsAssert("foo,baz,bar on call teams?", Some(List("foo", "baz", "bar")), "parse Some(List(\"foo\", \"baz\", \"bar\"))")
-  //
-  // onCallTeamsAssert("are foo and baz on call teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
-  // onCallTeamsAssert("are foo, and baz on call teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
-  // onCallTeamsAssert("are foo, bar, and baz on call teams?", Some(List("foo", "bar", "baz")), "parse Some(List(\"foo\", \"bar\", \"baz\"))")
-  // onCallTeamsAssert("are foo and baz oncall teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
-  // onCallTeamsAssert("are foo, and baz oncall teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
-  // onCallTeamsAssert("are foo, bar, and baz oncall teams?", Some(List("foo", "bar", "baz")), "parse Some(List(\"foo\", \"bar\", \"baz\"))")
-  //
-  // onCallTeamsAssert("are foo and baz pagerduty teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
-  // onCallTeamsAssert("are foo, and baz pagerduty teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
-  // onCallTeamsAssert("are foo, bar, and baz pagerduty teams?", Some(List("foo", "bar", "baz")), "parse Some(List(\"foo\", \"bar\", \"baz\"))")
+  onCallTeamsAssert("what are the on call teams?", None, "parse an on call team class")
+  onCallTeamsAssert("on call teams?", None, "parse an on call team class")
+
+  onCallTeamsAssert("foo on call team?", Some(List("foo")), "parse Some(List(\"foo\"))")
+  onCallTeamsAssert("is foo on call team?", Some(List("foo")), "parse Some(List(\"foo\"))")
+  onCallTeamsAssert("foo an on call team?", Some(List("foo")), "parse Some(List(\"foo\"))")
+  onCallTeamsAssert("is foo an on call team?", Some(List("foo")), "parse Some(List(\"foo\"))")
+  onCallTeamsAssert("is foo an on call teams?", Some(List("foo")), "parse Some(List(\"foo\"))")
+
+  onCallTeamsAssert("are foo, baz on call teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
+  onCallTeamsAssert("foo, baz on call teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
+  onCallTeamsAssert("foo, baz, bar on call teams?", Some(List("foo", "baz", "bar")), "parse Some(List(\"foo\", \"baz\", \"bar\"))")
+  onCallTeamsAssert("foo,baz,bar on call teams?", Some(List("foo", "baz", "bar")), "parse Some(List(\"foo\", \"baz\", \"bar\"))")
+
+  onCallTeamsAssert("are foo and baz on call teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
+  onCallTeamsAssert("are foo, and baz on call teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
+  onCallTeamsAssert("are foo, bar, and baz on call teams?", Some(List("foo", "bar", "baz")), "parse Some(List(\"foo\", \"bar\", \"baz\"))")
+  onCallTeamsAssert("are foo and baz oncall teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
+  onCallTeamsAssert("are foo, and baz oncall teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
+  onCallTeamsAssert("are foo, bar, and baz oncall teams?", Some(List("foo", "bar", "baz")), "parse Some(List(\"foo\", \"bar\", \"baz\"))")
+
+  onCallTeamsAssert("are foo and baz pagerduty teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
+  onCallTeamsAssert("are foo, and baz pagerduty teams?", Some(List("foo", "baz")), "parse Some(List(\"foo\", \"baz\"))")
+  onCallTeamsAssert("are foo, bar, and baz pagerduty teams?", Some(List("foo", "bar", "baz")), "parse Some(List(\"foo\", \"bar\", \"baz\"))")
   //
   //
   // "what are the poogerduty teams?" should "parse none" in {

@@ -18,6 +18,8 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import v2d2.client.{IMessage,User}
 import v2d2.actions.generic.protocol._
+import org.jxmpp.jid.BareJid
+import org.jxmpp.jid.Jid
 //TODO: change to protocol
 import v2d2.client.core._
 
@@ -27,11 +29,11 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
   implicit val materializer = ActorMaterializer()
   implicit val timeout = Timeout(25.seconds)
 
-  case class Joke(target:String, state:Int, sender:String, jokeIdx:Int)
+  case class Joke(target:BareJid, state:Int, sender:Jid, jokeIdx:Int)
 
   val answers = Answers.answers
   val clues = Clues.clues
-  var targets: Map[String, Joke] = Map()
+  var targets: Map[BareJid, Joke] = Map()
 
   def receive: Receive = {
 
@@ -64,9 +66,9 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
 
     case whois: Whois =>
       for {
-        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
+        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
       } yield {
-        val jid = whois.imsg.fromJid
+        val jid = whois.imsg.fromJid.asBareJid
         jmap get (jid) match {
           case Some(user) =>
             val jk = targets.getOrElse(
@@ -93,9 +95,9 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
 
     case who: Who =>
       for {
-        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
+        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
       } yield {
-        val jid = who.imsg.fromJid
+        val jid = who.imsg.fromJid.asBareJid
         jmap get (jid) match {
           case Some(user) =>
             val jk = targets.getOrElse(
@@ -103,7 +105,7 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
               Joke(target = user.jid, state = 0, sender = jid, jokeIdx = 0))
             if (jk.state == 2) {
               context.parent ! s"@${user.nick}, ${answers(jk.jokeIdx)}"
-              val jokeSender = jmap.getOrElse(jk.sender,
+              val jokeSender = jmap.getOrElse(jk.sender.asBareJid,
                 throw new RuntimeException("This should never happen"))
               context.parent ! s"This joke was brough to you by: @${jokeSender.nick}"
               targets = targets - user.jid
@@ -143,9 +145,9 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
       Whois(imsg).map(w => self ! w)
       Who(imsg).map(w => self ! w)
       if((Whois(imsg) == None) && (Who(imsg) == KnockKnock(imsg)) && targets.size > 0) {
-        val jid = imsg.fromJid
+        val jid = imsg.fromJid.asBareJid
         for {
-          jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
+          jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
         } yield {
             jmap get (jid) match {
               case Some(user) =>

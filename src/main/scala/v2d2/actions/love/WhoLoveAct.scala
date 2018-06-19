@@ -1,5 +1,7 @@
 package v2d2.actions.love
 
+import org.jxmpp.jid.BareJid
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -44,15 +46,15 @@ class WhoLoveAct
         case Success(data) =>
           log.info(s"output ${data.sent}")
           if(data.sent.length == 0) {
-            context.parent ! Response(love.imsg, s"@${love.target.nick} has a heart of stone")
+            context.parent ! Response(love.imsg, s"@${love.target.nick} has a heart of stone", None)
           } else {
             context.parent ! Response(love.imsg, s"${love.target.nick} has sent love to:\n" +
             data.sent.map {
               res => s"\t${res.recipients.mkString(", ")} - ${res.message}"
-            }.mkString("\n"))
+            }.mkString("\n"), None)
           }
         case Failure(t) =>
-          context.parent ! Response(love.imsg, s"An error has occured: " + t.getMessage)
+          context.parent ! Response(love.imsg, s"An error has occured: " + t.getMessage, None)
       }
 
     case love: GetUsersLove =>
@@ -70,15 +72,19 @@ class WhoLoveAct
         case Success(data) =>
           log.info(s"output ${data.received}")
           if(data.received.length == 0) {
-            context.parent ! Response(love.imsg, s"@${love.senderNick} oh boy this is awkward... you don't have any love yet")
+            context.parent ! Response(
+              love.imsg,
+              s"@${love.senderNick} oh boy this is awkward... you don't have any love yet",
+              None
+            )
           } else {
             context.parent ! Response(love.imsg, s"Loves sent to ${love.target.nick}:\n" +
               data.received.map {
                 res => s"\t${res.sender} - ${res.message}"
-            }.mkString("\n"))
+            }.mkString("\n"), None)
           }
         case Failure(t) =>
-          context.parent ! Response(love.imsg, s"An error has occured: " + t.getMessage)
+          context.parent ! Response(love.imsg, s"An error has occured: " + t.getMessage, None)
       }
 
     case imsg: IMessage =>
@@ -86,10 +92,10 @@ class WhoLoveAct
         case Some(whodo) =>
           log.info(s"entering whodo")
           for {
-            jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
+            jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
             nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
           } yield(
-            jmap get (whodo.imsg.fromJid) match {
+            jmap get (whodo.imsg.fromJid.asBareJid) match {
               case Some(user) =>
                 log.info(s"user: $user")
                 if(whodo.target.equalsIgnoreCase("i")) {
@@ -100,11 +106,11 @@ class WhoLoveAct
                     case Some(mark) => 
                       self ! GetUsersSentLove(mark, user.nick, whodo.imsg)
                     case _ =>
-                      context.parent ! Response(whodo.imsg, s"Nice try silly human.")
+                      context.parent ! Response(whodo.imsg, s"Nice try silly human.", None)
                   }
                 }
                 case _ =>
-                  context.parent ! Response(whodo.imsg, s"Nice try silly human.")
+                  context.parent ! Response(whodo.imsg, s"Nice try silly human.", None)
             })
           case _ => None
       }
@@ -113,10 +119,10 @@ class WhoLoveAct
         case Some(who) =>
           log.info("entering who love")
           for {
-            jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
+            jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
             nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
           } yield(
-            jmap get (who.imsg.fromJid) match {
+            jmap get (who.imsg.fromJid.asBareJid) match {
               case Some(user) =>
                 log.info(s"WELL THIS who ${who.target}")
                 if(who.target.equalsIgnoreCase("me")) {
@@ -127,11 +133,11 @@ class WhoLoveAct
                     case Some(mark) => 
                       self ! GetUsersLove(mark, user.nick, who.imsg)
                     case _ =>
-                      context.parent ! Response(who.imsg, s"Nice try silly human.")
+                      context.parent ! Response(who.imsg, s"Nice try silly human.", None)
                   }
                 }
                 case _ =>
-                  context.parent ! Response(who.imsg, s"Nice try silly human.")
+                  context.parent ! Response(who.imsg, s"Nice try silly human.", None)
             })
           case _ => None
       }

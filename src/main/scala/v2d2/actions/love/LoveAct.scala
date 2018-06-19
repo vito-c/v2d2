@@ -16,6 +16,7 @@ import akka.util.Timeout
 import org.jivesoftware.smackx.muc.MultiUserChat
 import v2d2.V2D2
 import v2d2.client.{IMessage, User}
+import org.jxmpp.jid.BareJid
 import v2d2.client.core._
 
 class LoveAct(muc: MultiUserChat) 
@@ -36,11 +37,15 @@ with LoveJsonProtocol {
           log.info(s"request love ${love}")
           for {
             nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
-            jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
+            jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
           } yield {
-            log.info(s"nmap req: ${nmap.size}")
-            log.info(s"jmap req: ${jmap.size}")
-            jmap get (imsg.fromJid) match {
+            // log.info(s"nmap req: ${nmap.size}")
+            // log.info(s"jmap req: ${jmap.size}")
+            pprint.log(nmap, "NMAP")
+            pprint.log(jmap, "JMAP")
+            pprint.log(imsg.fromJid.asBareJid, "barejid")
+            pprint.log(jmap.get(imsg.fromJid.asBareJid), "barejid")
+            jmap get (imsg.fromJid.asBareJid) match {
               case Some(user) =>
                 val sender = user
                 log.info("sending love!!")

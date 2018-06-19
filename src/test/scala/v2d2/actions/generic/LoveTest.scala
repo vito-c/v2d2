@@ -225,13 +225,16 @@ class LoveSpec extends FlatSpec with Matchers {
   }
 
   whoIsAssert("who is yo.mama", "yo.mama", "parse yo.mama as the target")
-  whoIsAssert("who is @SomeCoolGuy", "SomeCoolGuy", "parse SomeCoolGuy as the target")
   whoIsAssert("who is yo.mama?", "yo.mama", "parse yo.mama as the target as question")
+  whoIsAssert("who is @SomeCoolGuy", "SomeCoolGuy", "parse SomeCoolGuy as the target")
+  whoIsAssert("who is @vimFTW\u2620", "vimFTW\u2620", "parse vimFTW\u2620 as the target")
+  whoIsAssert("who is @vimFTW☠", "vimFTW\u2620", "parse vimFTW\u2620 as unicode char as the target")
   whoIsAssert("who is @SomeCoolGuy?", "SomeCoolGuy", "parse SomeCoolGuy as the target as question")
   whoIsAssert("who is @SomeCoolGuy???", "SomeCoolGuy", "parse SomeCoolGuy as the target as question")
+  whoIsAssert("who is @SomeCoolGuy ?", "SomeCoolGuy", "parse SomeCoolGuy as the target as question with space")
+  whoIsAssert("who is @Some1CoolGuy ", "Some1CoolGuy", "parse Some1CoolGuy as the target as question with space")
   whoIsAssert("who is yo.mama ?", "yo.mama", "parse yo.mama as the target as question with space")
   whoIsAssert("who is yo.mama@rallyhealth.com", "yo.mama", "parse yo.mama as the target as question with space")
-  whoIsAssert("who is @SomeCoolGuy ?", "SomeCoolGuy", "parse SomeCoolGuy as the target as question with space")
   whoIsAssert("who is Someone Cool", "Someone Cool", "parse Someone Cool as the target")
   whoIsAssert("who is Someone Cool?", "Someone Cool", "parse Someone Cool as the target as question")
   whoIsAssert("who is Someone Cool ?", "Someone Cool", "parse Someone Cool as the target as question with space")

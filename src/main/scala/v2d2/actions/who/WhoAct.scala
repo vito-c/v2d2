@@ -1,4 +1,5 @@
 package v2d2.actions.who
+import v2d2.actions.generic.HipNotif
 
 import scala.collection.immutable
 import scala.concurrent.Future
@@ -18,7 +19,10 @@ import v2d2.actions.generic.protocol.Response
 import v2d2.client.{IMessage, User}
 import v2d2.client.core._
 
-class WhoAct extends Actor with ActorLogging with WhoJPTL {
+class WhoAct(room: Option[String])
+extends Actor 
+with ActorLogging 
+with WhoJPTL {
 
   import system.dispatcher
   implicit val system = ActorSystem()
@@ -70,7 +74,7 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
                 StringUtils.getLevenshteinDistance(
                   p.email.toLowerCase(), n.toLowerCase())
               ).toList.sortBy(_._1).head
-              log.info(s"in lookup $out")
+              pprint.log(out,"results")
               out
             case fname(n) =>
               log.info("in lookup fullname")
@@ -80,14 +84,37 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
               ).toList.sortBy(_._1).head
             case _ =>
               // check first name, githubusername, hipchatMention
+              log.info("in lookup default")
               people.groupBy( p =>
                   best(search.toLowerCase(), p)
               ).toList.sortBy(_._1).head
           }
         case p => 
-          log.info("found someone " + p)
           Tuple2(0, p)
       }
+  }
+
+  def genResponse(imsg:IMessage, data:List[WhoUser]): Response = {
+    if (data.length > 4) {
+      Response(
+        imsg, data.map { u =>
+          s"Name: ${u.name}"
+        }.mkString("\n"), None)
+    } else {
+      val h = if(data.size>4) 128 else 256
+      val body = data.map( e => 
+          s"""<tr>""" +
+          s"""<td><img src="${
+            e.avatar.getOrElse("https://who.werally.in/images/avatar/anon.svg")}" height="${h}"</td>""" + 
+          s"""<td>Name: ${e.name}<BR>""" +
+          s"""Email: ${e.email}<BR>""" +
+          s"""Location: ${e.loc.getOrElse("Top Secret")}<BR>""" +
+          s"""</td>""" + 
+          s"""</tr>""".stripMargin
+          )
+      val out = s"<table>${body.mkString("")}</table>"
+      Response(imsg, out, Some(HipNotif("gray","html",out, room.getOrElse("120"))))
+    }
   }
 
   def receive: Receive = {
@@ -104,16 +131,9 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
       } yield entity
       content onComplete {
         case Success(data) =>
-          log.info(s"output ${data}")
-          context.parent ! Response(who.imsg,
-            s"name: ${data.name}\n" +
-            s"email: ${data.email}\n" +
-            s"location: ${data.loc.getOrElse("No Data")}\n" +
-            s"hipchat: ${data.hipchatMention.getOrElse("No Data")}\n" +
-            s"avatar: ${V2D2.who("root")}${data.avatar.getOrElse("No Data")}"
-            )
+          context.parent ! genResponse(who.imsg, List(data))
         case Failure(t) =>
-          context.parent ! Response(who.imsg, s"An error has occured: " + t.getMessage)
+          context.parent ! Response(who.imsg, s"An error has occured: " + t.getMessage, None)
       }
 
     case who: GetWhoAll =>
@@ -126,26 +146,14 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
       } yield entity
       content onComplete {
         case Success(data) =>
-          // val res = data.filter(_.first.equalsIgnoreCase(who.search))
-          // "name": "first": "email": (user.name) gitHubUsername hipchatMention
-          // log.info(s"request list search: " + who.search)
           for {
             emap <- (context.actorSelection("/user/xmpp") ? EmailMap()).mapTo[Map[String,User]]
             nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
-          } yield(
-            // val blah: = lookup(who.search, data, nmap, emap)
-            context.parent ! Response(who.imsg,
-              lookup(who.search, data, nmap, emap)._2.map { d =>
-                s"name: ${d.name}\n" +
-                s"match: ${lookup(who.search, data, nmap, emap)._1}\n" +
-                s"email: ${d.email}\n" +
-                s"location: ${d.loc.getOrElse("No Data")}\n" +
-                s"hipchat: ${d.hipchatMention.getOrElse("No Data")}\n" +
-                s"avatar: ${d.avatar.getOrElse("No Data")}"
-            }.mkString("\n"))
-          )
+          } yield {
+            context.parent ! genResponse(who.imsg, lookup(who.search, data, nmap, emap)._2.toList)
+          }
         case Failure(t) =>
-          context.parent ! Response(who.imsg, s"An error has occured: " + t.getMessage)
+          context.parent ! Response(who.imsg, s"An error has occured: " + t.getMessage, None)
       }
 
     // Loop back
@@ -164,7 +172,7 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
               case _ =>
                 emap get (who.target + "@rallyhealth.com") match {
                   case Some(user) =>
-                    log.info(s"who is ${who.target}")
+                    pprint.log(who.target, "who target")
                     self ! GetWhoUser(imsg, user)
                   case _ => self ! GetWhoAll(imsg, who.target)
                 }

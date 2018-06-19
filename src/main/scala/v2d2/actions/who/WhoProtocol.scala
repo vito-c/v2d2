@@ -23,7 +23,7 @@ object WhoIs extends BotCombinators {
   val target: P[String] = P( 
     ((letter.rep ~ "." ~ letter.rep).! ~ "@".? ~ AnyChar.rep | 
       (letter.rep ~ " " ~ letter.rep).! |
-      at.? ~ (letter.rep).! ) ~ " ".?)
+      at.? ~/ ((!(symbols) ~ AnyChar).rep).!) ~/ " ".?)
   val opt: P[String] = P(bot.? ~ who ~ target ~ "?".rep ~ End)
 
   def apply(imsg: IMessage): Option[WhoIs] = {

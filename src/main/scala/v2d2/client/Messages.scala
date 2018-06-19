@@ -1,5 +1,7 @@
 package v2d2.client
 
+import org.jxmpp.jid.Jid
+import org.jxmpp.jid.impl.JidCreate
 import org.jxmpp.util.XmppStringUtils
 import org.jivesoftware.smack.packet.{Presence, Message}
 import org.apache.commons.lang3.StringUtils
@@ -14,10 +16,10 @@ import org.jivesoftware.smack.packet.Element
 
 trait IMessage {
   def content:  String = { "v2d2, foo bar baz" }
-  def fromJid:  String = { "from you" }
+  def fromJid:  Jid = { JidCreate.from("vito@vito-test.com") }
   def fromName: String = { "SomeTestName" } // display name
   def fromNick: String = { "SomeTestName" } // mention name
-  def fromRaw:  String = { "from you" }
+  def fromRaw:  Option[Jid] = { Some(JidCreate.from("vito@vito-test.com")) }
 
   // def publish(msg:String): Unit = { println(msg) }
   def fromMsgJid: String = { "blah" }
@@ -25,21 +27,22 @@ trait IMessage {
 
 case class MsgData(
   content:  String,
-  fromJid:  String,
+  fromJid:  Jid,
   fromName: String,
   fromNick: String,
-  fromRaw:  String,
+  fromRaw:  Option[Jid],
   fromMsgJid: String
 )
 
 class DMessage(data: MsgData) extends IMessage {
   override def content:     String = { data.content }
-  override def fromJid:     String = { data.fromJid }
+  override def fromJid:     Jid = { data.fromJid }
   override def fromName:    String = { data.fromName }
   override def fromNick:    String = { data.fromNick }
-  override def fromRaw:     String = { data.fromRaw }
+  override def fromRaw:     Option[Jid] = { data.fromRaw }
   override def fromMsgJid:  String = { data.fromMsgJid }
 }
+
 class EMessage extends IMessage {
 }
 
@@ -52,29 +55,33 @@ class XMessage(xmsg: Message) extends IMessage {
   //   XmppStringUtils.parseBareJid(xmsg.getFrom())
   // }
   override def content:     String = { xmsg.getBody() }
-  override def fromJid:     String = { XmppStringUtils.parseBareJid(xmsg.getFrom().toString()) }
+  override def fromJid:     Jid = { pprint.log(xmsg.getFrom(), "XMSG GET FROM"); xmsg.getFrom() }
   override def fromName:    String = { XmppStringUtils.parseResource(xmsg.getFrom().toString()) }
   override def fromNick:    String = { "(poo)" }
-  override def fromRaw:     String = { xmsg.getFrom().toString() }
+  override def fromRaw:     Option[Jid] = { Some(xmsg.getFrom()) }
   override def fromMsgJid:  String = { xmsg.getFrom().toString() }
 }
 
 //MultiUserMessage
 class MUMessage(xmsg: Message, chat: MultiUserChat) extends XMessage(xmsg) with IMessage {
 
-  override def fromRaw: String = {
+  override def fromRaw: Option[Jid] = {
     if (xmsg.getFrom().isEntityFullJid()){
-      val occupant = chat.getOccupant(xmsg.getFrom().asEntityFullJidIfPossible())
-      if (occupant != null)
-        occupant.getJid().toString()
-      else ""
-    } else ""
+      val fulljid = xmsg.getFrom().asEntityFullJidIfPossible()
+      val occupant = chat.getOccupant(fulljid)
+      if( occupant != null && fulljid != null) {
+        return Some(chat.getOccupant(fulljid).getJid()) 
+      }
+    }
+    None
   }
 
-  override def fromJid: String = {
-    if (fromRaw != "")
-      XmppStringUtils.parseBareJid(fromRaw)
-    else ""
+  // TODO: make this an option??
+  override def fromJid: Jid = {
+    fromRaw match {
+      case Some(jid) => jid
+      case None => JidCreate.from("uglyhack@causethis_shouldbean_option.com") 
+    }
   }
 
   // override def fromMsgJid: String = {

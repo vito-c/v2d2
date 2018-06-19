@@ -43,12 +43,13 @@ with ActorLogging {
 
   val searcher = context.actorOf(Props(classOf[UserSearchAct]), name = "usersearch")// + muc.getRoom() )
   val profile  = context.actorOf(Props(classOf[ProfileActor], connection), name = "cmd:profile" )
-  val useraggregator = context.actorOf(Props(classOf[UserAggreator], connection), name = "cmd:useraggregator" )
+  val useraggregator = context.actorOf(Props(classOf[UserAggreator], connection), name = "useraggregator" )
   var counter  = System.currentTimeMillis()
-  val hcnotifs = context.actorOf(Props(classOf[HipChatNotifs]), name = "hcnotifs")// + muc.getRoom() )
+  // val hcnotifs = context.actorOf(Props(classOf[HipChatNotifs]), name = "hcnotifs")// + muc.getRoom() )
   val hcusers  = context.actorOf(Props(classOf[HipChatUsersAct]), name = "hcusers")// + muc.getRoom() )
 
   override def preStart = {
+    pprint.pprintln("OMG IN PRESTART")
 
     context.actorOf(Props(classOf[Quitter]), name = "cmd:quit")// + muc.getRoom() )
     context.actorOf(Props(classOf[NailedIt]), name = "cmd:nailed")// + muc.getRoom() )
@@ -56,7 +57,7 @@ with ActorLogging {
     // context.actorOf(Props(classOf[Knocker], muc), name = "knocker")// + muc.getRoom() )
     // context.actorOf(Props(classOf[LoveAct], muc), name = "cmd:lover")// + muc.getRoom() )
     context.actorOf(Props(classOf[WhoLoveAct]), name = "cmd:wholove")// + muc.getRoom() )
-    context.actorOf(Props(classOf[WhoAct]), name = "cmd:whois")// + muc.getRoom() )
+    context.actorOf(Props(classOf[WhoAct], None), name = "cmd:whois")// + muc.getRoom() )
     context.actorOf(Props(classOf[PagerAct]), name = "cmd:pager")// + muc.getRoom() )
     context.actorOf(Props(classOf[ServerAct]), name = "cmd:server")// + muc.getRoom() )
     context.actorOf(Props(classOf[MagicAct], None), name = "cmd:magic")// + muc.getRoom() )
@@ -91,7 +92,7 @@ with ActorLogging {
   }
   def receive: Receive = {
 
-    case Response(imsg, response) =>
+    case Response(imsg, response, notif) =>
       counter = System.currentTimeMillis()
       ChatManager.getInstanceFor(connection)
         .createChat(JidCreate.entityFrom(imsg.fromJid)).sendMessage(response)
@@ -135,14 +136,22 @@ with ActorLogging {
     case f:FindUser => 
       searcher forward f
 
-    case UserList() =>
-      log.info("IN USER LIST")
-      useraggregator ! UserList()
+    // TODO: Debugging
+    // case a:AddUsers =>
+    //   log.info("IN USER LIST")
+    //   useraggregator ! a
+
+    // case UserList() =>
+    //   log.info("IN USER LIST")
+    //   useraggregator ! UserList()
+
+    case r:Resources =>
+      pprint.log(r, "RESOURCES IN XMPP")
+      useraggregator ! r
 
     case UserListResponse(users) =>
-      pprint.log(users.head, "users head")
       _usersCache = users map { u => u }
-      pprint.log(_usersCache.head, "users head cache")
+      pprint.log(_usersCache, "users head cache")
 
 
     // case f:FindUser =>
@@ -467,7 +476,7 @@ with ActorLogging {
 
     case UserMap() =>
       log.info("usermap request")
-      sender() ! _usersCache.map(u => u.jid -> u).toMap
+      sender() ! UserMapResponse(_usersCache.map(u => u.jid.toString -> u).toMap)
       
 
     case EmailMap() =>

@@ -32,7 +32,10 @@ case class HipNotif(
   message_format: String = "html",
   message: String,
   room: String)
-class HipChatNotifs extends Actor with ActorLogging with HipNotifProtocol{
+class HipChatNotifs 
+  extends Actor 
+  with HipNotifProtocol
+  with ActorLogging {
 
   import system.dispatcher
   implicit val system = ActorSystem()

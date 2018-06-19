@@ -61,7 +61,7 @@ libraryDependencies ++= Seq(
   "org.jxmpp" % "jxmpp-stringprep-libidn" % "0.6.0"
 )
 libraryDependencies ++= Seq("smack-java7", "smack-tcp", "smack-extensions") map 
-{ "org.igniterealtime.smack" % _ % "4.2.2" }
+{ "org.igniterealtime.smack" % _ % "4.2.4" }
 
 resolvers += "Glassfish" at "http://maven.glassfish.org/content/repositories/maven.hudson-labs.org"
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
