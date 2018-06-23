@@ -17,13 +17,17 @@ val sprayVersion = "1.3.3"
 val akkaV       = "2.4.11" //"2.5.3"
 val akkaHttpV   = "10.0.9"
 val scalaTestV  = "3.0.1"
+val macWireV    = "2.3.0"
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
 // scalacOptions ++= Seq("-unchecked", "-deprecation")
 // Need to import typesafe better
 // "com.github.nscala-time" %% "nscala-time" % "2.16.0"
 libraryDependencies ++= Seq(
-
+  "com.softwaremill.macwire" %% "macros" % macWireV % "provided",
+  "com.softwaremill.macwire" %% "macrosakka" % macWireV % "provided",
+  "com.softwaremill.macwire" %% "util" % macWireV,
+  "com.softwaremill.macwire" %% "proxy" % macWireV,
   "com.typesafe.akka" %% "akka-actor" % akkaV,
   "com.typesafe.akka" %% "akka-contrib" % akkaV,
   "com.typesafe.akka" %% "akka-stream" % akkaV,

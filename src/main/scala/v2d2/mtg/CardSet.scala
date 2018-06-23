@@ -27,6 +27,7 @@ trait ICard {
   def number: Option[String]
   def text: Option[String]
   def manaCost: Option[String]
+  def mciNumber: Option[String]
 }
 trait ICardSet {
   def name: String

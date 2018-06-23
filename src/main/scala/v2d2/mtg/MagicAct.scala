@@ -69,8 +69,11 @@ with CardSetProtocol {
         sets <- Unmarshal(json).to[Map[String,CardSet]]
         } yield(
           sets.map { t => 
-            t._1 -> t._2.copy( cards = t._2.cards map { c => 
-              c.copy(setKey = t._2.magicCardsInfoCode) 
+            t._1 -> t._2.copy(
+              cards = t._2.cards map { c => 
+                c.copy(setKey = t._2.magicCardsInfoCode) 
+              } filter { c => 
+                c.layout != "token" 
             })
           }
         ) 
@@ -84,9 +87,8 @@ with CardSetProtocol {
         case Success(cards) =>
           val target = cs.target.toLowerCase()
           val results = lookupName(target, cards)
-          pprint.log(results)
-          pprint.log(scores(results.head.name, cs.target.toLowerCase()))
-          pprint.log(cs.target.length)
+          // pprint.log(scores(results.head.name, cs.target.toLowerCase()))
+          // pprint.log(cs.target.length)
           val score = scores(results.head.name, cs.target.toLowerCase()).min
           val tlen  = cs.target.length
           val pcent = (tlen - score).toFloat/tlen
@@ -109,13 +111,16 @@ with CardSetProtocol {
                   |and score ${jcent*100}%1.2f$p""".stripMargin.replaceAll("\n", " "), None)
           } else {
             val uri = "https://magiccards.info/scans/en/"
+            // results map { c =>
+            //   pprint.pprintln(s"c.setKey: ${c.setKey} c.number: ${c.number} c.mciNumger: ${c.mciNumber}")
+            // }
             val imgs = results collect {
-              case c if(c.number != None && c.setKey != None) => c
+              case c if(c.mciNumber != None && c.setKey != None) => c
             } map { c =>
-              (uri + c.setKey.get.toLowerCase() + "/" + c.number.get + ".jpg" -> c)
+              (uri + c.setKey.get.toLowerCase() + "/" + c.mciNumber.get + ".jpg" -> c)
             }
 
-            imgs map { t => println(t._1) }
+            // imgs map { t => pprint.pprintln(t._1) }
             if (imgs.length > 16) {
               context.parent ! Response(
                 cs.imsg, imgs.map { t =>

@@ -72,7 +72,7 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
       j.getResourceOrEmpty().toString()
     }.toList
     pprint.log(p, "GET THESE USERS")
-    context.actorSelection("akka://system/user/xmpp") ! Resources(p)
+    context.actorSelection("akka://v2d2/user/xmpp") ! Resources(p)
 
     muc.addParticipantListener(new PresenceListener() {
       override def processPresence(presence: Presence) = {

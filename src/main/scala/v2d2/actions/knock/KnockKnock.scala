@@ -43,8 +43,11 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
       } yield {
         val nick = knock.target.getOrElse("fail")
         val jid  = knock.imsg.fromJid
+        pprint.pprintln(s"nick ${nick}")
+        pprint.pprintln(s"jid ${jid}")
         nmap get (nick.trim) match {
           case Some(user) => // if user.jid != V2D2.v2d2Jid =>
+            pprint.pprintln(s"user ${user}")
             val jk = targets.getOrElse(
               user.jid,
               Joke(
@@ -52,9 +55,10 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
                 state = 0,
                 sender = jid,
                 jokeIdx = Random.nextInt(clues.size)))
+            pprint.pprintln(s"jk ${jk}")
             if (jk.state < 1) {
               targets = targets.updated(user.jid, jk.copy(state = jk.state + 1))
-              log.info(s"user ${user.jid} added to map")
+              pprint.pprintln(s"user ${user.jid} added to map")
               context.parent ! s"Knock, knock @${nick}!"
             } else {
               context.parent ! s"I already have a joke going with, @${nick}"
@@ -65,10 +69,15 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
       }
 
     case whois: Whois =>
+      log.info("INSIDE THE WHOIS")
       for {
-        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
+        // umr <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
+        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
+        // jmap <- umr.users
+        // usrs <- Future{searchMap(jmap.users, j.needle)}
       } yield {
-        val jid = whois.imsg.fromJid.asBareJid
+        val jid = whois.imsg.fromJid.asBareJid.toString
+        pprint.pprintln(s"jid ${jid}")
         jmap get (jid) match {
           case Some(user) =>
             val jk = targets.getOrElse(

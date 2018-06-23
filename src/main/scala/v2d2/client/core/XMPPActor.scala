@@ -476,8 +476,8 @@ with ActorLogging {
 
     case UserMap() =>
       log.info("usermap request")
-      sender() ! UserMapResponse(_usersCache.map(u => u.jid.toString -> u).toMap)
-      
+      val um = _usersCache.map(u => u.jid.toString -> u).toMap
+      sender() ! UserMapResponse(um)
 
     case EmailMap() =>
       log.info("email map request")
@@ -514,7 +514,7 @@ with ActorLogging {
         .getMultiUserChat(JidCreate.entityBareFrom(room))
       val mactor = context.actorOf(
         Props(classOf[MUCActor], muc, connection),
-        name = room
+        name = room.replaceAll("[^a-zA-Z0-9]", "")
       )
       // mactor ! "Hello, humans"
 
