@@ -92,10 +92,11 @@ class WhoLoveAct
         case Some(whodo) =>
           log.info(s"entering whodo")
           for {
-            jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
+            umr <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
             nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
-          } yield(
-            jmap get (whodo.imsg.fromJid.asBareJid) match {
+          } yield {
+            val jmap = umr.users
+            jmap get (whodo.imsg.fromJid.asBareJid.toString) match {
               case Some(user) =>
                 log.info(s"user: $user")
                 if(whodo.target.equalsIgnoreCase("i")) {
@@ -111,7 +112,9 @@ class WhoLoveAct
                 }
                 case _ =>
                   context.parent ! Response(whodo.imsg, s"Nice try silly human.", None)
-            })
+            }
+          }
+
           case _ => None
       }
 
@@ -119,10 +122,11 @@ class WhoLoveAct
         case Some(who) =>
           log.info("entering who love")
           for {
-            jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
+            umr <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
             nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
-          } yield(
-            jmap get (who.imsg.fromJid.asBareJid) match {
+          } yield {
+            val jmap = umr.users
+            jmap get (who.imsg.fromJid.asBareJid.toString) match {
               case Some(user) =>
                 log.info(s"WELL THIS who ${who.target}")
                 if(who.target.equalsIgnoreCase("me")) {
@@ -138,7 +142,8 @@ class WhoLoveAct
                 }
                 case _ =>
                   context.parent ! Response(who.imsg, s"Nice try silly human.", None)
-            })
+            }
+          }
           case _ => None
       }
   }

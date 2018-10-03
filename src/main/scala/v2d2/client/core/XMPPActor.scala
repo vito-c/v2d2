@@ -474,36 +474,21 @@ with ActorLogging {
     //   } yield(
     //   )
 
+    // This Map has to be a string key because the object wasn't working.
     case UserMap() =>
       log.info("usermap request")
-      val um = _usersCache.map(u => u.jid.toString -> u).toMap
-      sender() ! UserMapResponse(um)
+      sender() ! UserMapResponse(_usersCache.map(u => u.jid.toString -> u).toMap)
 
     case EmailMap() =>
       log.info("email map request")
-      val out = _usersCache.map(u => u.nick -> u).toMap
-      log.info(s"out len ${out.size}")
-      pprint.log(out)
       sender() ! _usersCache.map(u => u.email -> u).toMap
-      // (for {
-      //   ulist <- (self ? UserList()).mapTo[List[User]]
-      // } yield {
-      //   ulist.map(u => u.email -> u).toMap
-      // }) pipeTo sender
 
     case NickMap() =>
-      // Future { 
-      //   log.info(s"nick map request ${_usersCache.length}")
-      //   _usersCache.map(u => u.nick -> u).toMap 
-      // } pipeTo sender
-      log.info(s"nick map request ${_usersCache.length}")
-      val out = _usersCache.map(u => u.nick -> u).toMap
-      log.info(s"out len ${out.size}")
-      pprint.log(out)
+      log.info("nick map request")
       sender() ! _usersCache.map(u => u.nick -> u).toMap
-      
 
     case NameMap() =>
+      log.info("nick name request")
       sender() ! _usersCache.map(u => u.name -> u).toMap 
 
     case JoinRoom(room, chatpass) =>

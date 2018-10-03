@@ -37,15 +37,16 @@ with LoveJsonProtocol {
           log.info(s"request love ${love}")
           for {
             nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
-            jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
+            umr <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
           } yield {
+            val jmap = umr.users
             // log.info(s"nmap req: ${nmap.size}")
             // log.info(s"jmap req: ${jmap.size}")
             pprint.log(nmap, "NMAP")
             pprint.log(jmap, "JMAP")
             pprint.log(imsg.fromJid.asBareJid, "barejid")
-            pprint.log(jmap.get(imsg.fromJid.asBareJid), "barejid")
-            jmap get (imsg.fromJid.asBareJid) match {
+            pprint.log(jmap.get(imsg.fromJid.asBareJid.toString), "barejid")
+            jmap get (imsg.fromJid.asBareJid.toString) match {
               case Some(user) =>
                 val sender = user
                 log.info("sending love!!")

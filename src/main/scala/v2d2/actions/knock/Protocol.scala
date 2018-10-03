@@ -6,6 +6,7 @@ import fastparse.all._
 import fastparse.parsers.Combinators.Rule
 import fastparse.parsers._
 import v2d2.parsers.{Blackspace,BotCombinators}
+import org.jxmpp.jid.BareJid
 import v2d2.client.IMessage
 import v2d2.LoggerConfig
 

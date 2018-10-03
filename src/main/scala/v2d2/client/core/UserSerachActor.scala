@@ -70,14 +70,14 @@ with ActorLogging {
         usrs
       }) pipeTo sender
 
-    case j: JID =>
-      log.info("jid request")
-      (for {
-        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
-        usrs <- Future{searchMap(jmap.users, j.needle)}
-      } yield { 
-        usrs
-      }) pipeTo sender
+    // case j: JID =>
+    //   log.info("jid request")
+    //   (for {
+    //     jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
+    //     usrs <- Future{searchMap(jmap.users, j.needle)}
+    //   } yield { 
+    //     usrs
+    //   }) pipeTo sender
 
     case t @ (Email | UName) =>
       log.info("email request")

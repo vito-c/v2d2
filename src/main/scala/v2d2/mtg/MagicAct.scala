@@ -64,6 +64,7 @@ with CardSetProtocol {
   }
 
   def receive: Receive = {
+    case scry:
     case mc: MagicCards =>
       val req = for {
         sets <- Unmarshal(json).to[Map[String,CardSet]]
@@ -71,7 +72,8 @@ with CardSetProtocol {
           sets.map { t => 
             t._1 -> t._2.copy(
               cards = t._2.cards map { c => 
-                c.copy(setKey = t._2.magicCardsInfoCode) 
+                val thing = t._2.magicCardsInfoCode.getOrElse(t._2.code)
+                c.copy(setKey = Some(t._2.magicCardsInfoCode.getOrElse(t._2.code)))
               } filter { c => 
                 c.layout != "token" 
             })
@@ -92,9 +94,12 @@ with CardSetProtocol {
           val score = scores(results.head.name, cs.target.toLowerCase()).min
           val tlen  = cs.target.length
           val pcent = (tlen - score).toFloat/tlen
-          println("++++++++++++++++++++++++++++")
-          println(s"pc: ${pcent} score: ${score}")
-          println("++++++++++++++++++++++++++++")
+
+          // pprint.log(results, "res")
+          // println("++++++++++++++++++++++++++++")
+          // println(s"pc: ${pcent} score: ${score} len: ${tlen}")
+          // println("++++++++++++++++++++++++++++")
+
           if (cs.target.length < 3) {
             context.parent ! Response(cs.imsg,"Try asking again with a longer string",None)
           } else if ( 
@@ -111,16 +116,21 @@ with CardSetProtocol {
                   |and score ${jcent*100}%1.2f$p""".stripMargin.replaceAll("\n", " "), None)
           } else {
             val uri = "https://magiccards.info/scans/en/"
+
             // results map { c =>
-            //   pprint.pprintln(s"c.setKey: ${c.setKey} c.number: ${c.number} c.mciNumger: ${c.mciNumber}")
+            //   pprint.pprintln(s"c.setKey: ${c.setKey} c.number: ${c.number} c.mciNumber: ${c.mciNumber}")
             // }
+
             val imgs = results collect {
-              case c if(c.mciNumber != None && c.setKey != None) => c
+              case c if( (c.mciNumber != None || c.number != None) && c.setKey != None) => 
+                c
             } map { c =>
-              (uri + c.setKey.get.toLowerCase() + "/" + c.mciNumber.get + ".jpg" -> c)
+              val num = if(c.mciNumber == None) c.number.get else c.mciNumber.get
+              pprint.pprintln(s"num: ${num}")
+              (uri + c.setKey.get.toLowerCase() + "/" + num + ".jpg" -> c)
             }
 
-            // imgs map { t => pprint.pprintln(t._1) }
+            imgs map { t => pprint.pprintln(t._1) }
             if (imgs.length > 16) {
               context.parent ! Response(
                 cs.imsg, imgs.map { t =>
@@ -132,12 +142,14 @@ with CardSetProtocol {
               val tds = imgs.map( e => 
                   s"""<td><img src="${e._1}" height="${h}"</td>""".stripMargin)
               val body = for( (td, i) <- tds.view.zipWithIndex ) yield {
-                val j = i + 1
-                if ( j % 4 == 0 || j == imgs.size) { s"${td}</tr>" }
-                else if( j % 4 == 1) { s"<tr>${td}" }
-                else if ( j % 4 > 1 ) { td }
-                else td
-              }
+                  val j = i + 1
+                  if ( j % 4 == 0 || j == imgs.size) { 
+                    if (imgs.size == 1) { s"<tr>${td}</tr>" }
+                    else { s"${td}</tr>" }
+                  } else if( j % 4 == 1) { s"<tr>${td}" }
+                  else if ( j % 4 > 1 ) { td }
+                  else td
+                }
 
               val o = s"<table>${body.mkString("")}</table>"
               context.parent ! HipNotif("gray","html",o,room.getOrElse("120"))

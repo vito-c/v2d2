@@ -324,6 +324,39 @@ with BeforeAndAfterAll {
       proxy.send(parent, tmsg)
       proxy.receiveN(1, 8.seconds)
     }
+    "list best match for card with real data validate table goblin motivator" in {
+      val proxy = TestProbe()
+      val tmsg: IMessage = new TMessage(TMsgData("card name is goblin motivator?"))
+      val cs = CardNameSearch(tmsg, "goblin motivator")
+      val parent = system.actorOf(Props(new Actor {
+        val child = context.actorOf(Props(classOf[MagicAct], None), "child")
+        def receive = {
+          case x if sender == child => 
+            x match  {
+              case r:Response =>
+                println("==========================")
+                pprint.log(r,"response")
+                println("==========================")
+              case a:HipNotif =>
+                println("==========================")
+                val e = HipNotif("gray","html",
+                  """<table><tr>
+                    |<td><img src="https://magiccards.info/scans/en/m19/143.jpg" height="321"</td>
+                  |</tr></table>""".stripMargin.replaceAll("\n", ""),"120")
+                pprint.log(a,"actual")
+                pprint.log(e,"expexted")
+                assert(e.toString == a.toString)
+                println("==========================")
+              case _ => assert(false)
+            }
+            proxy.ref forward x
+          case x => child forward x
+        }
+      }))
+
+      proxy.send(parent, tmsg)
+      proxy.receiveN(1, 3.seconds)
+    }
 
     "list best match for card with real data validate table lee swamp" in {
       val proxy = TestProbe()
@@ -340,14 +373,15 @@ with BeforeAndAfterAll {
                 println("==========================")
               case a:HipNotif =>
                 println("==========================")
-                println(a)
                 val e = HipNotif("gray","html",
                   """<table><tr>
                     |<td><img src="https://magiccards.info/scans/en/tsts/100.jpg" height="321"</td>
-                    |<td><img src="https://magiccards.info/scans/en/m12/238.jpg" height="321"</td>
+                    |<td><img src="https://magiccards.info/scans/en/bbd/252.jpg" height="321"</td>
                     |<td><img src="https://magiccards.info/scans/en/ddr/65.jpg" height="321"</td>
                     |<td><img src="https://magiccards.info/scans/en/me2/243.jpg" height="321"</td>
-                 |</tr></table>""".stripMargin.replaceAll("\n", ""),"120")
+                  |</tr></table>""".stripMargin.replaceAll("\n", ""),"120")
+                pprint.log(a,"actual")
+                pprint.log(e,"expected")
                 assert(e.toString == a.toString)
                 println("==========================")
               case _ => assert(false)
@@ -414,8 +448,44 @@ with BeforeAndAfterAll {
         }
       }))
 
+
+
       proxy.send(parent, tmsg)
       proxy.receiveN(1, 8.seconds)
+    }
+
+    "list best match for card with real data validate table isolate" in {
+      val proxy = TestProbe()
+      val tmsg: IMessage = new TMessage(TMsgData("card name is isolate?"))
+      val cs = CardNameSearch(tmsg, "isolate")
+      val parent = system.actorOf(Props(new Actor {
+        val child = context.actorOf(Props(classOf[MagicAct], None), "child")
+        def receive = {
+          case x if sender == child => 
+            x match  {
+              case r:Response =>
+                println("==========================")
+                pprint.log(r,"response")
+                println("==========================")
+              case a:HipNotif =>
+                println("==========================")
+                val e = HipNotif("gray","html",
+                  """<table><tr>
+                    |<td><img src="https://magiccards.info/scans/en/m19/17.jpg" height="321"</td>
+                  |</tr></table>""".stripMargin.replaceAll("\n", ""),"120")
+                pprint.log(a,"actual")
+                pprint.log(e,"expexted")
+                assert(e.toString == a.toString)
+                println("==========================")
+              case _ => assert(false)
+            }
+            proxy.ref forward x
+          case x => child forward x
+        }
+      }))
+
+      proxy.send(parent, tmsg)
+      proxy.receiveN(1, 3.seconds)
     }
   }
 }

@@ -29,11 +29,11 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
   implicit val materializer = ActorMaterializer()
   implicit val timeout = Timeout(25.seconds)
 
-  case class Joke(target:BareJid, state:Int, sender:Jid, jokeIdx:Int)
+  case class Joke(target:String, state:Int, sender:String, jokeIdx:Int)
 
   val answers = Answers.answers
   val clues = Clues.clues
-  var targets: Map[BareJid, Joke] = Map()
+  var targets: Map[String, Joke] = Map()
 
   def receive: Receive = {
 
@@ -42,22 +42,22 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
         nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
       } yield {
         val nick = knock.target.getOrElse("fail")
-        val jid  = knock.imsg.fromJid
+        val jid  = knock.imsg.fromJid.toString
         pprint.pprintln(s"nick ${nick}")
         pprint.pprintln(s"jid ${jid}")
         nmap get (nick.trim) match {
           case Some(user) => // if user.jid != V2D2.v2d2Jid =>
             pprint.pprintln(s"user ${user}")
             val jk = targets.getOrElse(
-              user.jid,
+              user.jid.toString,
               Joke(
-                target = user.jid,
+                target = user.jid.toString,
                 state = 0,
                 sender = jid,
                 jokeIdx = Random.nextInt(clues.size)))
             pprint.pprintln(s"jk ${jk}")
             if (jk.state < 1) {
-              targets = targets.updated(user.jid, jk.copy(state = jk.state + 1))
+              targets = targets.updated(user.jid.toString, jk.copy(state = jk.state + 1))
               pprint.pprintln(s"user ${user.jid} added to map")
               context.parent ! s"Knock, knock @${nick}!"
             } else {
@@ -71,23 +71,24 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
     case whois: Whois =>
       log.info("INSIDE THE WHOIS")
       for {
-        // umr <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
-        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[String,User]]
-        // jmap <- umr.users
-        // usrs <- Future{searchMap(jmap.users, j.needle)}
+        umr <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
       } yield {
+        val jmap = umr.users
         val jid = whois.imsg.fromJid.asBareJid.toString
-        pprint.pprintln(s"jid ${jid}")
+        pprint.pprintln(s"jid: ${jid}")
+        pprint.pprintln(s"targets: ${targets}")
+        pprint.pprintln(s"jmap: ${jmap}")
+        pprint.pprintln(s"user: ${jmap.get(jid)}")
         jmap get (jid) match {
           case Some(user) =>
             val jk = targets.getOrElse(
-              user.jid,
-              Joke(target = user.jid, state = 0, sender = jid, jokeIdx = 0))
+              user.jid.toString,
+              Joke(target = user.jid.toString, state = 0, sender = jid, jokeIdx = 0))
             log.info(s"ujid: ${user.jid}")
             log.info(s"unick: ${user.nick}")
             if (jk.state == 1) {
               log.info(s"success ")
-              targets = targets.updated(user.jid, jk.copy(state = jk.state + 1))
+              targets = targets.updated(user.jid.toString, jk.copy(state = jk.state + 1))
               context.parent ! s"@${user.nick}, ${clues(jk.jokeIdx)}"
             } else if (jk.state > 0) {
               log.info(s"snappy comeback")
@@ -97,27 +98,28 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
               context.parent ! s"@${user.nick}, shhh don't try to steal jokes..."
             }
           case _ =>
-            log.warning(s"user ${jid} not found")
+            log.warning(s"user: ${jid} not found")
             None
         }
       }
 
     case who: Who =>
       for {
-        jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
+        umr <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
       } yield {
-        val jid = who.imsg.fromJid.asBareJid
+        val jmap = umr.users
+        val jid = who.imsg.fromJid.asBareJid.toString
         jmap get (jid) match {
           case Some(user) =>
             val jk = targets.getOrElse(
-              user.jid,
-              Joke(target = user.jid, state = 0, sender = jid, jokeIdx = 0))
+              user.jid.toString,
+              Joke(target = user.jid.toString, state = 0, sender = jid.toString, jokeIdx = 0))
             if (jk.state == 2) {
               context.parent ! s"@${user.nick}, ${answers(jk.jokeIdx)}"
-              val jokeSender = jmap.getOrElse(jk.sender.asBareJid,
+              val jokeSender = jmap.getOrElse(jk.sender,
                 throw new RuntimeException("This should never happen"))
               context.parent ! s"This joke was brough to you by: @${jokeSender.nick}"
-              targets = targets - user.jid
+              targets = targets - user.jid.toString
             } else if (jk.state  > 0) {
               context.parent ! s"@${user.nick}, do you remember how knock knock jokes work?"
             } else if (targets.nonEmpty) {
@@ -154,16 +156,17 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
       Whois(imsg).map(w => self ! w)
       Who(imsg).map(w => self ! w)
       if((Whois(imsg) == None) && (Who(imsg) == KnockKnock(imsg)) && targets.size > 0) {
-        val jid = imsg.fromJid.asBareJid
+        val jid = imsg.fromJid.asBareJid.toString
         for {
-          jmap <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[Map[BareJid,User]]
+          umr <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
         } yield {
+            val jmap = umr.users
             jmap get (jid) match {
               case Some(user) =>
                 // context.parent ! s"user found: ${user} ${jid}"
                 val jk = targets.getOrElse(
-                  user.jid,
-                  Joke(target = user.jid, state = 0, sender = jid, jokeIdx = 0))
+                  user.jid.toString,
+                  Joke(target = user.jid.toString, state = 0, sender = jid, jokeIdx = 0))
                 log.info(s"ujid: ${user.jid}")
                 log.info(s"unick: ${user.nick}")
                 if (jk.state >=1) {

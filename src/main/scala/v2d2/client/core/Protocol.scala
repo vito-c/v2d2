@@ -4,6 +4,7 @@ import v2d2.parsers.{Blackspace,BotCombinators}
 import v2d2.client.IMessage
 import scala.collection.immutable.Queue
 import akka.actor.ActorRef
+import org.jxmpp.jid.BareJid
 import v2d2.actions.generic.hipchat.HipProfile
 import v2d2.client.User
 

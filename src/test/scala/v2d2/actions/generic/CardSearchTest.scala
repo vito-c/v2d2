@@ -69,6 +69,9 @@ with CardSetProtocol {
   cardSearchAssert("card name burning sun's avatar", "burning sun's avatar", "parse foo as the target")
   cardSearchAssert("cardname burning sun's avatar", "burning sun's avatar", "parse foo as the target")
 
+  cardSearchAssert("card name isolate", "isolate", "parse isolate as the target")
+  cardSearchAssert("card name is isolate", "isolate", "parse isolate as the target")
+
   // cardSearchAssert("v2d2, what card name is burning sun's avatar?", "burning sun's avatar", "parse foo as the target")
   // cardSearchAssert("v2d2, what card name is burning sun's avatar", "burning sun's avatar", "parse foo as the target")
   // cardSearchAssert("!card name burning sun's avatar", "burning sun's avatar", "parse foo as the target")
