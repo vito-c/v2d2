@@ -52,6 +52,8 @@ with DefaultJsonProtocol {
   implicit val CardFormat = jsonFormat20(Card.apply)
   implicit val CardSetFormat = jsonFormat8(CardSet.apply)
 
+
+  //
   // implicit val CardFormat = jsonFormat(
   //   Card.apply, 
   //   "artist",
