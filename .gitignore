@@ -3,3 +3,11 @@ src/main/resources/creds.conf
 creds.bak
 secrets.txt
 .idea
+target
+.DS_Store
+.bloop/
+.metals/
+AllCards.json
+AllCards.json.zip
+AllSets.json.zip
+Session.vim
