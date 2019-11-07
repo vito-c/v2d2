@@ -2,13 +2,14 @@
 src/main/resources/v2d2.conf
 if you want to use the sendlove api make sure you update these
 v2d2 {
-  actors = [ "v2d2.Quitter", "v2d2.NailedIt", "v2d2.Help" ]
-  rooms = [ { name = "***", pass = "***" },
-            { name = "***", pass ="***" }
-  ]
-  deployment = "devlopment"
-  sendlove = { 
-    url = "***" }
+  slack = {
+    btoken = "***"
+    ptoken = "***"
+  }
+  challonge = "***"
+  love = { 
+    url = "****"
+  }
   who = { 
     url = "***",
     root = "***"
@@ -34,5 +35,15 @@ creds {
 }
 
 cards available here:
-https://mtgjson.com/json/AllSets.json.zip
 wget https://archive.scryfall.com/json/scryfall-all-cards.json
+wget https://archive.scryfall.com/json/scryfall-default-cards.json
+
+list of commands:
+knock knock @person
+who is @person
+love @person for being awesome
+/love @person for being awesome
+/crush @person for being awesome
+ - /guess @person
+/rallywho TBD
+
