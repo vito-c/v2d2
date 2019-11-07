@@ -3,9 +3,7 @@ version := "0.0.1"
 fork    := true
 cancelable in Global := true
 // scalaVersion := "2.12.4"
-scalaVersion := "2.11.7"
-ensimeIgnoreScalaMismatch in ThisBuild := true
-ensimeScalaVersion in ThisBuild := "2.11.7"
+scalaVersion := "2.11.12"
 // ensimeServerVersion in ThisBuild := 3.0.0-SNAPSHOT
 
 // enablePlugins(JavaAppPackaging)

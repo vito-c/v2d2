@@ -157,6 +157,9 @@ with ActorLogging {
       })
 
     case HipIdList(ids) =>
+
+      // curl -XGET -H 'ContentType application/json' 'https://hipchat.rallyhealth.com/v2/user/197?auth_token=uwWdmXhdcQfYVzXpWAhXpF1KwwgVq6jonQdRSaPL'
+
       val QueueSize = 10
       val poolClientFlow = Http().cachedHostConnectionPoolHttps[Promise[HttpResponse]]("hipchat.rallyhealth.com")
       val queue =
@@ -182,10 +185,13 @@ with ActorLogging {
         // val id  = try { jid.toString().split("@")(0).split("_")(1) } catch {
         //   case t:Throwable => "1" 
         // }
-        queueRequest(HttpRequest(
+        val qr = queueRequest(HttpRequest(
           method = HttpMethods.GET, 
           headers = List(headers.Accept(MediaTypes.`application/json`)),
           uri = s"/v2/user/${id}?auth_token=${V2D2.hcapi}"))
+        pprint.log(s"/v2/user/${id}?auth_token=${V2D2.hcapi}")
+        pprint.log(qr)
+        qr
       } 
       val lfp: List[Future[HipProfile]] = futureProfiles map { fr =>
         fr flatMap { r => 
@@ -197,8 +203,6 @@ with ActorLogging {
         pprint.log(lp,"print profile")
         ProfileResponse(lp) 
       }
-      pprint.log(fpr, "FPR!")
-      pprint.log(sender(), "sender")
       fpr pipeTo sender()
       
       // val responses: Future[List[HttpResponse]] = Future.sequence(futureProfiles)

@@ -124,6 +124,7 @@ class MUCActor(muc: MultiUserChat, connection: XMPPTCPConnection) extends Actor 
     case MakeRosterDirty() =>
       context.parent ! MakeRosterDirty()
 
+      // relay message to all actors
     case Relay(imsg) =>
       if(imsg == null || imsg.content == null || imsg.content == "") None
       else context.children foreach { child => child ! imsg }

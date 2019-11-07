@@ -28,6 +28,7 @@ trait ICard {
   def text: Option[String]
   def manaCost: Option[String]
   def mciNumber: Option[String]
+  def image_uris: Option[Images]
 }
 trait ICardSet {
   def name: String
@@ -48,8 +49,14 @@ case class CardSet(
 
 trait CardSetProtocol
 extends SprayJsonSupport
-with DefaultJsonProtocol {
-  implicit val CardFormat = jsonFormat20(Card.apply)
+with DefaultJsonProtocol 
+// with CardLegalitiesProtocol
+// with CardImageProtocol
+with CardProtocol
+{
+  // implicit val CardLegalitiesFormat = jsonFormat11(Legalities.apply)
+  // implicit val CardImagesFormat = jsonFormat6(Images.apply)
+  // implicit val CardFormat = jsonFormat22(Card.apply)
   implicit val CardSetFormat = jsonFormat8(CardSet.apply)
 
 

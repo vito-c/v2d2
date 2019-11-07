@@ -121,82 +121,94 @@ case class ImageUris(
   art_crop: String,
   border_crop: String
 )
+
+// case class OldCard(
+//   // ctype: String,
+//   artist: String,
+//   cmc: Option[Int], // Converted Mana Cost
+//   colorIdentity: Option[Seq[String]],
+//   colors: Option[Seq[String]],
+//   flavor: Option[String],
+//   id: String,
+//   layout: String,
+//   manaCost: Option[String],
+//   mciNumber: Option[String],
+//   multiverseid: Option[Int],
+//   name: String,
+//   number: Option[String],
+//   power: Option[String],
+//   rarity: String,
+//   setKey: Option[String],
+//   subtypes: Option[Seq[String]],
+//   text: Option[String],
+//   toughness: Option[String],
+//   types: Option[Seq[String]]
+// ) extends ICard
+
+case class Images(
+  small: String,
+  normal: String,
+  large: String,
+  png: String,
+  art_crop: String,
+  border_crop: String
+)
+case class Legalities(
+    standard: String,
+    future: String,
+    frontier: String,
+    modern: String,
+    legacy: String,
+    pauper: String,
+    vintage: String,
+    penny: String,
+    commander: String,
+    // 1v1: String,
+    duel: String,
+    brawl: String
+)
 case class Card(
-  id: String,
-  oracle_id: String,
-  multiverse_ids: List[Int],
-  name: String,
-  lang: String,
-  uri: String,
-  scryfall_uri: String,
-  layout: String,
-  highres_image: Boolean,
-  image_uris: ImageUris,
-  mana_cost: String,
-  cmc: Int,
-  type_line: String,
-  oracle_text: String,
-  power: String,
-  toughness: String,
-  colors: List[String],
-  color_identity: List[String],
-  legalities: List[String],
-  reprint: Boolean,
-  set: String,
-  flavor_text: String,
-  set_name: String,
-"set_uri": "https://api.scryfall.com/sets/lea",
-"set_search_uri": "https://api.scryfall.com/cards/search?order=set&q=e%3Alea&unique=prints",
-"scryfall_set_uri": "https://scryfall.com/sets/lea?utm_source=api",
-"rulings_uri": "https://api.scryfall.com/cards/fefbf149-f988-4f8b-9f53-56f5878116a6/rulings",
-"prints_search_uri": "https://api.scryfall.com/cards/search?order=set&q=%21%E2%80%9CShivan+Dragon%E2%80%9D+include%3Aextras&unique=prints",
-"collector_number": "174",
-"digital": false,
-"rarity": "rare",
-"flavor_text": "While it's true most Dragons are cruel, the Shivan Dragon seems to take particular glee in the misery of others, often tormenting its victims much like a cat plays with a mouse before delivering the final blow.",
-"illustration_id": "d326c884-fed0-4b92-bd88-fd4989597c20",
-"artist": "Melissa A. Benson",
-"frame": "1993",
-"full_art": false,
-"border_color": "black",
-"timeshifted": false,
-"colorshifted": false,
-"futureshifted": false,
-"story_spotlight": false,
-"edhrec_rank": 5535,
-"related_uris": {
-  "gatherer": "http://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=222",
-  "tcgplayer_decks": "http://decks.tcgplayer.com/magic/deck/search?contains=Shivan+Dragon&page=1&partner=Scryfall",
-  "edhrec": "http://edhrec.com/route/?cc=Shivan+Dragon",
-  "mtgtop8": "http://mtgtop8.com/search?MD_check=1&SB_check=1&cards=Shivan+Dragon"
- }
-  artist: String,
   cmc: Option[Int], // Converted Mana Cost
   colorIdentity: Option[Seq[String]],
   colors: Option[Seq[String]],
   flavor: Option[String],
   id: String,
-  imageName: String,
+  image_uris: Option[Images],
   layout: String,
+  legalities: Legalities,
   manaCost: Option[String],
   mciNumber: Option[String],
-  multiverseid: Option[Int],
   name: String,
   number: Option[String],
   power: Option[String],
   rarity: String,
+  scryfall_uri: String,
+  set: String,
+  setKey: Option[String],
   subtypes: Option[Seq[String]],
   text: Option[String],
   toughness: Option[String],
-  // ctype: String,
   types: Option[Seq[String]],
-  setKey: Option[String]
+  uri: String
 ) extends ICard
 
-trait CardProtocol
+trait CardLegalitiesProtocol
 extends SprayJsonSupport
 with DefaultJsonProtocol {
-  implicit val CardFormat = jsonFormat20(Card.apply)
+  implicit val CardLegalitiesFormat = jsonFormat11(Legalities.apply)
+}
+
+trait CardImageProtocol
+extends SprayJsonSupport
+with DefaultJsonProtocol {
+  implicit val CardImagesFormat = jsonFormat6(Images.apply)
+}
+trait CardProtocol
+extends SprayJsonSupport
+with DefaultJsonProtocol with CardLegalitiesProtocol with CardImageProtocol{
+  // implicit val CardLegalitiesFormat = jsonFormat11(Legalities.apply)
+  // implicit val CardImagesFormat = jsonFormat6(Images.apply)
+  implicit val CardFormat = jsonFormat22(Card.apply)
 
   // implicit val CardFormat = jsonFormat(
   //   Card.apply, 

@@ -24,14 +24,14 @@ object CardNameSearch extends BotCombinators {
     ic("what").? ~ ws ~ 
     ic("card") ~ ws ~ 
     ic("name") ~ ws ~
-    ic("is ").? ~ ws)
+    ic("is ").? )
   val text:P[Unit] = P(ic("text"))
   // wait to implement
   val optText:P[Unit] = P(
     ic("with").? ~ ws ~
     ((CharIn("+")|"--") ~ text |
     CharIn("-") ~ "t"))
-  val opt: P[String] = P(bot.? ~ ws ~ card ~ target ~ "?".rep ~ End)
+  val opt: P[String] = P(bot.? ~ ws ~ card ~ ws ~ target ~ "?".rep ~ End)
 
   def apply(imsg: IMessage): Option[CardNameSearch] = {
     println(s"imsg content: ${imsg.content}")
@@ -40,8 +40,7 @@ object CardNameSearch extends BotCombinators {
 
   def apply(str: String, imsg:IMessage): Option[CardNameSearch] = {
     opt.parse(str) match {
-      case Parsed.Success(value, _) if (value.length > 2) => 
-        println(s"value is '${value}'")
+      case Parsed.Success(value, _) => // if (value.length > 2) => 
         Some(CardNameSearch(imsg, value))
       case _ =>
         None

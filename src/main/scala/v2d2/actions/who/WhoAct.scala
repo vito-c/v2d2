@@ -47,6 +47,7 @@ with WhoJPTL {
     nickMap: Map[String,User],
     emailMap: Map[String,User]
   ): Tuple2[Int, Seq[WhoUser]] = {
+    pprint.log(nickMap)
     log.info("in lookup")
     // first we look for literal matches on full name, first name, gitHubUsername
     // we already checked literal matches of user.name (email), first.last and hipchatmention
@@ -179,6 +180,5 @@ with WhoJPTL {
             })
         case _ => None
       }
-      
   }
 }

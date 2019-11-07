@@ -39,12 +39,20 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
 
     case knock: KnockKnock =>
       for {
+        umr <- (context.actorSelection("/user/xmpp") ? UserMap()).mapTo[UserMapResponse]
         nmap <- (context.actorSelection("/user/xmpp") ? NickMap()).mapTo[Map[String,User]]
       } yield {
         val nick = knock.target.getOrElse("fail")
         val jid  = knock.imsg.fromJid.toString
-        pprint.pprintln(s"nick ${nick}")
+        pprint.pprintln(s"nick '${nick}'")
         pprint.pprintln(s"jid ${jid}")
+        val foo = nmap.get(nick)
+        val bar = nmap.get(nick.trim)
+        pprint.log(foo)
+        pprint.log(bar)
+        pprint.log(nmap)
+        pprint.log(umr)
+        
         nmap get (nick.trim) match {
           case Some(user) => // if user.jid != V2D2.v2d2Jid =>
             pprint.pprintln(s"user ${user}")
@@ -152,7 +160,12 @@ class Knocker(muc: MultiUserChat) extends Actor with ActorLogging {
       //   s"\n${targets}" +
       //   s"\n===========================================")
 
-      KnockKnock(imsg).map(k => self ! k)
+      val k = KnockKnock(imsg)
+      pprint.log(k)
+      KnockKnock(imsg) map { k => 
+        pprint.log(k)
+        self ! k
+      }
       Whois(imsg).map(w => self ! w)
       Who(imsg).map(w => self ! w)
       if((Whois(imsg) == None) && (Who(imsg) == KnockKnock(imsg)) && targets.size > 0) {

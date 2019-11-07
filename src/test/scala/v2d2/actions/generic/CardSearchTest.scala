@@ -103,7 +103,7 @@ with CardSetProtocol {
     //   getClass.getResourceAsStream("/allsets.json")
     // ).getLines().mkString("")
 
-    val req:Future[Map[String,CardSet]] = Unmarshal(lines).to[Map[String,CardSet]]
+    val req:Future[List[Card]] = Unmarshal(lines).to[List[Card]]
 
     val foo = req.onComplete({
       case Success(cs) => {

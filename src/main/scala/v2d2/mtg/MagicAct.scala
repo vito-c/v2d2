@@ -29,7 +29,17 @@ with CardSetProtocol {
   implicit val timeout = Timeout(25.seconds)
 
   val stream : InputStream = getClass.getResourceAsStream("/allsets.json")
+// https://archive.scryfall.com/json/scryfall-default-cards.json
   val json = scala.io.Source.fromInputStream(stream).mkString
+  case class TMsgData(
+    content: String
+  )
+
+  class TMessage(
+    data: TMsgData
+  ) extends IMessage {
+    override def content: String = { data.content }
+  }
 
   def scores(str:String, search:String):List[Int] = {
     val symbols = """!<'_-&^'%$#"@=>,""".flatMap(s => s + "|")
@@ -42,9 +52,8 @@ with CardSetProtocol {
 
   def lookupName(
     search: String,
-    sets: Map[String,ICardSet]
+    cards: List[ICard]
   ): List[ICard] = {
-    val cards = sets.values.map(s => s.cards).flatten
     cards.filter(c => c.name.equalsIgnoreCase(search)) match {
       case Nil =>
         val minList = cards.groupBy(
@@ -64,40 +73,30 @@ with CardSetProtocol {
   }
 
   def receive: Receive = {
-    case scry:
+    // case scry:
     case mc: MagicCards =>
       val req = for {
-        sets <- Unmarshal(json).to[Map[String,CardSet]]
+        cards <- Unmarshal(json).to[List[Card]]
         } yield(
-          sets.map { t => 
-            t._1 -> t._2.copy(
-              cards = t._2.cards map { c => 
-                val thing = t._2.magicCardsInfoCode.getOrElse(t._2.code)
-                c.copy(setKey = Some(t._2.magicCardsInfoCode.getOrElse(t._2.code)))
-              } filter { c => 
-                c.layout != "token" 
-            })
-          }
+          cards
         ) 
       req pipeTo sender
     
     case cs:CardNameSearch =>
       val content = for {
-        cards <- (self ? MagicCards()).mapTo[Map[String,CardSet]]
+        cards <- (self ? MagicCards()).mapTo[List[Card]]
       } yield cards
       content onComplete {
         case Success(cards) =>
           val target = cs.target.toLowerCase()
           val results = lookupName(target, cards)
-          // pprint.log(scores(results.head.name, cs.target.toLowerCase()))
-          // pprint.log(cs.target.length)
           val score = scores(results.head.name, cs.target.toLowerCase()).min
           val tlen  = cs.target.length
           val pcent = (tlen - score).toFloat/tlen
 
-          // pprint.log(results, "res")
           // println("++++++++++++++++++++++++++++")
           // println(s"pc: ${pcent} score: ${score} len: ${tlen}")
+          // println(s"len: ${cs.target.length} target: ${cs.target}")
           // println("++++++++++++++++++++++++++++")
 
           if (cs.target.length < 3) {
@@ -115,22 +114,15 @@ with CardSetProtocol {
                   |${results.head.name} with ${pcent*100}%1.2f$p
                   |and score ${jcent*100}%1.2f$p""".stripMargin.replaceAll("\n", " "), None)
           } else {
-            val uri = "https://magiccards.info/scans/en/"
-
-            // results map { c =>
-            //   pprint.pprintln(s"c.setKey: ${c.setKey} c.number: ${c.number} c.mciNumber: ${c.mciNumber}")
-            // }
 
             val imgs = results collect {
-              case c if( (c.mciNumber != None || c.number != None) && c.setKey != None) => 
-                c
-            } map { c =>
-              val num = if(c.mciNumber == None) c.number.get else c.mciNumber.get
-              pprint.pprintln(s"num: ${num}")
-              (uri + c.setKey.get.toLowerCase() + "/" + num + ".jpg" -> c)
-            }
+              case c if( c.image_uris != None) =>
+                val u = c.image_uris.get.png
+                // pprint.pprintln(s"uri: ${u}")
+                (u -> c)
+              }
 
-            imgs map { t => pprint.pprintln(t._1) }
+            // imgs map { t => pprint.pprintln(t._1) }
             if (imgs.length > 16) {
               context.parent ! Response(
                 cs.imsg, imgs.map { t =>
@@ -155,30 +147,16 @@ with CardSetProtocol {
               context.parent ! HipNotif("gray","html",o,room.getOrElse("120"))
             }
           }
-            // if (false) { //TODO: keep this so you can add text request
-            //   for((t,i) <- imgs.view.zipWithIndex) {
-            //     system.scheduler.scheduleOnce(500*i milliseconds) {
-            //       val s = s"""<table height="321">
-            //       |<tr height="321">
-            //       |<td><img src="${t._1}" width="225" height="321"></td>
-            //       |<td height="321"><strong>${t._2.name}</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${t._2.manaCost.getOrElse("Land")}<BR>
-            //       |${t._2.text.getOrElse("").split(" ").zipWithIndex.map { s:(String,Int) => if((s._2+1) % 8 == 0) { s._1 + "<BR>"} else {s._1} }.mkString(" ")}</td>
-            //       |</tr></table>""".stripMargin
-            //       println(s)
-            //       context.parent ! HipNotif("gray","html",s)
-            //     }
-            //   }
-            // }
-          // }
-
         case Failure(t) =>
           context.parent ! Response(cs.imsg, s"An error has occured: " + t.getMessage, None)
       }
 
     case imsg: IMessage =>
       CardNameSearch(imsg) match {
-        case Some(cs) => self forward cs
-        case _ => None
+        case Some(cs) => 
+          self forward cs
+        case _ => 
+          None
       }
     case _ => None
   }
