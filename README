@@ -3,22 +3,34 @@ src/main/resources/v2d2.conf
 if you want to use the sendlove api make sure you update these
 v2d2 {
   actors = [ "v2d2.Quitter", "v2d2.NailedIt", "v2d2.Help" ]
-  rooms = [ { name = "1234_foobar@conf.hipchat.com", pass = "" } ]
+  rooms = [ { name = "***", pass = "***" },
+            { name = "***", pass ="***" }
+  ]
+  deployment = "devlopment"
   sendlove = { 
-    url = "",
-    api_key = ""
-    send = "sendlovemsg"
-    nick = "getNicknameByUsername"
-    caller = ""
+    url = "***" }
+  who = { 
+    url = "***",
+    root = "***"
+  }
+  pagerduty = {
+    url = "***"
   }
 }
 
 src/main/resources/creds.conf
 replace the below configurations with something that makes sense
 creds {
-  password = "pass"
-  user = "12345_1234567"
-  ...
+  password = "****"
+  user = "***"
+  jid = "***"
+  port = 5222
+  display = "V2D2"
+  host = "****"
+  tokens = {
+    user = "****"
+    room = "****"
+  }
 }
 
 cards available here:
