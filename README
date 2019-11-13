@@ -42,8 +42,9 @@ list of commands:
 knock knock @person
 who is @person
 love @person for being awesome
+card name <name of card>
 /love @person for being awesome
-/crush @person for being awesome
+/admire slack migration @person for being awesome
  - /guess @person
 /rallywho TBD
 

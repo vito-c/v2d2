@@ -118,15 +118,15 @@ class LoveAct extends Actor with ActorLogging with LoveJsonProtocol {
                       s"<@${msg.user}> umm this is awkward... I am incapable of expressing emotions"
                     )
                   Nil
-                // case Some(user) if user.id == sender.id =>
-                //   if (love.targets.length == 1) {
-                //     context.parent ! EphemResponse(
-                //       msg, s"<@${msg.user}> loving yourself is healthy... but let's try and share the love")
-                //   } else {
-                //     context.parent ! EphemResponse(
-                //       msg, s"<@${msg.user}> so clever hiding your nick in the list I almost didn't see it... I'll just send love to the others for you.")
-                //   }
-                //   Nil
+                case Some(user) if user.id == sender.id =>
+                  if (love.targets.length == 1) {
+                    context.parent ! EphemResponse(
+                      msg, s"<@${msg.user}> loving yourself is healthy... but let's try and share the love")
+                  } else {
+                    context.parent ! EphemResponse(
+                      msg, s"<@${msg.user}> so clever hiding your nick in the list I almost didn't see it... I'll just send love to the others for you.")
+                  }
+                  Nil
                 case Some(user) =>
                   log.info(s"get target ${user}")
                   List(user)

@@ -94,7 +94,7 @@ object V2D2 extends App with SlashCommandProtocol {
                 formFieldMap { fields =>
                   val ocmd = SlashCommand(fields)
                   ocmd.map { cmd =>
-                    muxactor ! SlashRelay(
+                   muxactor ! SlashRelay(
                       Message(
                         ts = "1234",
                         channel = cmd.channel_id,
@@ -112,32 +112,32 @@ object V2D2 extends App with SlashCommandProtocol {
           }
         )
       },
-      pathPrefix("crush") {
-        concat(
-          pathEnd {
-            concat(
-              post {
-                formFieldMap { fields =>
-                  val ocmd = SlashCommand(fields)
-                  ocmd.map { cmd =>
-                    muxactor ! SlashRelay(
-                      Message(
-                        ts = "1234",
-                        channel = cmd.channel_id,
-                        user = cmd.user_id,
-                        text = cmd.strippedText,
-                        is_starred = None,
-                        thread_ts = None
-                      )
-                    )
-                  }
-                  complete(StatusCodes.NoContent)
-                }
-              }
-            )
-          }
-        )
-      },
+      // pathPrefix("crush") {
+      //   concat(
+      //     pathEnd {
+      //       concat(
+      //         post {
+      //           formFieldMap { fields =>
+      //             val ocmd = SlashCommand(fields)
+      //             ocmd.map { cmd =>
+      //               muxactor ! SlashRelay(
+      //                 Message(
+      //                   ts = "1234",
+      //                   channel = cmd.channel_id,
+      //                   user = cmd.user_id,
+      //                   text = cmd.strippedText,
+      //                   is_starred = None,
+      //                   thread_ts = None
+      //                 )
+      //               )
+      //             }
+      //             complete(StatusCodes.NoContent)
+      //           }
+      //         }
+      //       )
+      //     }
+      //   )
+      // },
       pathPrefix("love") {
         concat(
           pathEnd {

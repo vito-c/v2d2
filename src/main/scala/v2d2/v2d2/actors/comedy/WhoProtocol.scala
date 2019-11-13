@@ -12,20 +12,23 @@ import slack.models.User
 
 case class GetWhoUser(
   msg: Message,
-  target: User
+  target: User,
+  silent: Boolean
 )
 case class GetWhoAll(
   msg: Message,
-  search: String
+  search: String,
+  silent: Boolean
 )
 case class WhoIs(
   msg: Message,
-  target: String
+  target: String,
+  silent: Boolean
 )
 
 object WhoIs extends BotCombinators {
 
-  def who[_: P] = P(IgnoreCase("who") ~ ws ~ IgnoreCase("is") ~ ws)
+  def who[_: P] = P(IgnoreCase("rally").? ~ ws.? ~ IgnoreCase("who") ~ ws ~ IgnoreCase("is") ~ ws)
 
   def opt[_: P] = P(bot.? ~ who ~/ (nick | uname) ~ "?".rep ~ End)
 
@@ -46,7 +49,7 @@ object WhoIs extends BotCombinators {
           case "their"   => None
           case "it"      => None
           case "on call" => None
-          case _         => Some(WhoIs(msg, value))
+          case _         => Some(WhoIs(msg, value, false))
         }
       case _ =>
         None
