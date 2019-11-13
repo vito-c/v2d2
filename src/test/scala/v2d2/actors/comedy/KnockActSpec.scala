@@ -2,7 +2,6 @@ package v2d2.actors.comedy
 
 import org.apache.commons.text.similarity._
 import akka.actor.ActorSystem
-import v2d2.protocols.Response
 import akka.testkit.{ImplicitSender, TestActorRef, TestActors, TestKit}
 import org.scalatest.{BeforeAndAfterAll}
 import slack.models.Message
@@ -21,6 +20,7 @@ import org.scalatest.AsyncWordSpecLike
 import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers._
+import v2d2.protocols.{Response, TrackJoke}
 
 // import org.mockito.{Matchers, Mockito}
 // import org.mockito.Matchers._
@@ -123,10 +123,11 @@ class KnockActSpec
           val ans1 = wr.deliver
           pprint.log(ans1)
           assert(ans1 == "<@sender> Art who?")
-          (knocker ? sendmsg(s"R2-D2")).mapTo[Response].map { wwr =>
+          (knocker ? sendmsg(s"R2-D2")).mapTo[TrackJoke].map { wwr =>
             val ans2 = wwr.deliver.replaceFirst("<@[^>]*> ", "")
             pprint.log(ans2)
-            assert(ans2 == "Ha Ha Ha. You humans are so funny!")
+            assert(ans2 == """Ha Ha Ha. You humans are so funny!
+              |Vote for this joke by responding with an emoji""".stripMargin)
           }
         }
       }
@@ -134,7 +135,7 @@ class KnockActSpec
 
     "test the jokes on cpu call back" in {
       val probe   = TestProbe()
-      val knocker = system.actorOf(Props(classOf[Knocker]), "knock2")
+      val knocker = system.actorOf(Props(classOf[Knocker]), "knock3")
       val msg     = sendmsg(s"v2d2, knock knock")
       val future  = (knocker ? msg).mapTo[Response]
       future.flatMap { kr =>
@@ -145,10 +146,11 @@ class KnockActSpec
           val ans1 = wr.deliver
           pprint.log(ans1)
           assert(ans1 == "<@sender> Art who?")
-          (knocker ? sendmsg(s"R2-D2")).mapTo[Response].map { wwr =>
+          (knocker ? sendmsg(s"R2-D2")).mapTo[TrackJoke].map { wwr =>
             val ans2 = wwr.deliver.replaceFirst("<@[^>]*> ", "")
             pprint.log(ans2)
-            assert(ans2 == "Ha Ha Ha. You humans are so funny!")
+            assert(ans2 == """Ha Ha Ha. You humans are so funny!
+              |Vote for this joke by responding with an emoji""".stripMargin)
           }
         }
       }

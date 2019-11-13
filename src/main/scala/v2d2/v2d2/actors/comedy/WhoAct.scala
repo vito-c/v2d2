@@ -19,6 +19,8 @@ import slack.models.Message
 import scala.concurrent.ExecutionContext.Implicits.global
 import slack.models.User
 import slack.rtm.SlackRtmClient
+import v2d2.protocols.SlashRelay
+import v2d2.protocols.EphemResponse
 
 class WhoAct extends Actor with ActorLogging with WhoJPTL {
 
@@ -97,24 +99,21 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
 
   def genResponse(
     msg: Message,
-    data: List[WhoUser]
-  ): Response = {
+    data: List[WhoUser],
+    silent: Boolean
+  ): v2d2.protocols.Responder = {
     if (data.length > 4) {
-      Response(
-        msg,
-        data
-          .map { u =>
+      val str = data.map { u =>
             s"Name: ${u.name}"
-          }
-          .mkString("\n")
-      )
+          }.mkString("\n")
+      if(silent) EphemResponse(msg, str)
+      else Response(msg, str)
     } else {
-      val str = data
-        .map { e =>
+      val str = data.map { e =>
           e.avatar.getOrElse("https://who.werally.in/images/avatar/anon.svg")
-        }
-        .mkString("\n")
-      Response(msg, str)
+        }.mkString("\n")
+      if(silent) EphemResponse(msg, str)
+      else Response(msg, str)
     }
   }
 
@@ -138,7 +137,7 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
       } yield entity
       content.onComplete {
         case Success(data) =>
-          context.parent ! genResponse(who.msg, List(data))
+          context.parent ! genResponse(who.msg, List(data), who.silent)
         case Failure(t) =>
           context.parent ! Response(who.msg, s"An error has occured: " + t.getMessage)
       }
@@ -164,42 +163,48 @@ class WhoAct extends Actor with ActorLogging with WhoJPTL {
               }
               email -> u
             }.toMap
-            context.parent ! genResponse(who.msg, lookup(who.search, data, nmap, emap)._2.toList)
+            context.parent ! genResponse(
+              who.msg, 
+              lookup(who.search, data, nmap, emap)._2.toList,
+              who.silent
+            )
           }
         case Failure(t) =>
           context.parent ! Response(who.msg, s"An error has occured: " + t.getMessage)
       }
 
-    // Loop back
+    case SlashRelay(msg) =>
+      WhoIs(msg).map(x => self.forward(x.copy(silent = true)))
+
     case msg: Message =>
-      WhoIs(msg) match {
-        case Some(who) =>
-          log.info("entering who is")
-          for {
-            userslist <- V2D2.users
-          } yield {
-            val nmap = userslist.map(u => u.id -> u).toMap
-            val emap = userslist.map { u =>
-              val email = u.profile match {
-                case Some(p) =>
-                  p.email.getOrElse(u.id)
-                case _ => u.id
-              }
-              email -> u
-            }.toMap
-            nmap.get(who.target) match {
-              case Some(user) =>
-                log.info(s"who is ${who.target}")
-                self ! GetWhoUser(msg, user)
-              case _ =>
-                emap.get(who.target + "@rallyhealth.com") match {
-                  case Some(user) =>
-                    self ! GetWhoUser(msg, user)
-                  case _ => self ! GetWhoAll(msg, who.target)
-                }
-            }
+      WhoIs(msg).map(self.forward(_))
+
+    case who: WhoIs =>
+      val msg = who.msg
+      log.info("entering who is")
+      for {
+        userslist <- V2D2.users
+      } yield {
+        val nmap = userslist.map(u => u.id -> u).toMap
+        val emap = userslist.map { u =>
+          val email = u.profile match {
+            case Some(p) =>
+              p.email.getOrElse(u.id)
+            case _ => u.id
           }
-        case _ => None
+          email -> u
+        }.toMap
+        nmap.get(who.target) match {
+          case Some(user) =>
+            log.info(s"who is ${who.target}")
+            self ! GetWhoUser(msg, user, who.silent)
+          case _ =>
+            emap.get(who.target + "@rallyhealth.com") match {
+              case Some(user) =>
+                self ! GetWhoUser(msg, user, who.silent)
+              case _ => self ! GetWhoAll(msg, who.target, who.silent)
+            }
+        }
       }
   }
 }

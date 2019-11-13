@@ -308,10 +308,13 @@ class LoveSpec extends FlatSpec with Matchers {
   }
 
   whoIsAssert("who is yo.mama", "yo.mama", "parse yo.mama as the target")
+  whoIsAssert("rallywho is yo.mama", "yo.mama", "parse yo.mama as the target")
+  whoIsAssert("rally who is yo.mama", "yo.mama", "parse yo.mama as the target")
   whoIsAssert("who is yo.mama?", "yo.mama", "parse yo.mama as the target as question")
   whoIsAssert("who is <@SomeCoolGuy>", "SomeCoolGuy", "parse SomeCoolGuy as the target")
   whoIsAssert("who is <@vimFTW2620>", "vimFTW2620", "parse vimFTW2620 as the target")
-  whoIsAssert("who is <@vimFTW>", "vimFTW", "parse vimFTW as unicode char as the target")
+  whoIsAssert("rallywho is <@vimFTW>", "vimFTW", "parse vimFTW as unicode char as the target")
+  whoIsAssert("rally who is <@vimFTW>", "vimFTW", "parse vimFTW as unicode char as the target")
   whoIsAssert(
     "who is <@SomeCoolGuy>?",
     "SomeCoolGuy",

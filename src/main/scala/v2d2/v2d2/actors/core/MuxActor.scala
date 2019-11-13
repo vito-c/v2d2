@@ -32,6 +32,7 @@ import scala.concurrent.duration._
 import scala.util.Success
 import scala.util.Failure
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
+import slack.models.Attachment
 
 class MuxActor(
   client: SlackRtmClient
@@ -64,11 +65,24 @@ class MuxActor(
       )
 
     case EphemResponse(rec, txt) =>
-      client.apiClient.client.postChatEphemeral(
-        channelId = rec.channel,
-        text = txt,
-        user = rec.user
-      )
+      // TODO fix this 
+      if(txt.endsWith(".jpg")) {
+        client.apiClient.client.postChatEphemeral(
+          channelId = rec.channel,
+          text = txt,
+          attachments = Some(List(Attachment(
+            fallback = Some("fallback"),
+            image_url = Some(txt),
+          ))),
+          user = rec.user
+        )
+      } else {
+        client.apiClient.client.postChatEphemeral(
+          channelId = rec.channel,
+          text = txt,
+          user = rec.user
+        )
+      }
 
     case Response(rec, txt) =>
       client.sendMessage(rec.channel, txt)
@@ -79,10 +93,12 @@ class MuxActor(
     case sr: SlashRelay =>
       if (sr.msg.text == "") {
         None
-      } else
+      } else {
+        pprint.log(sr.msg)
         context.children.foreach { child =>
           child ! sr
         }
+      }
 
     case Relay(msg) =>
       if (msg.text == "") {
@@ -92,6 +108,6 @@ class MuxActor(
           child ! msg
         }
 
-    case _ => None
+    case x => pprint.log(x)
   }
 }
