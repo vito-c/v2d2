@@ -79,8 +79,8 @@ class LoveAct extends Actor with ActorLogging with LoveJsonProtocol {
 
     case SlashRelay(msg) =>
       Love(msg).map(self.forward(_))
-      Crush(msg).map(self.forward(_))
-      Guess(msg).map(self.forward(_))
+      // Crush(msg).map(self.forward(_))
+      // Guess(msg).map(self.forward(_))
 
     case msg: Message =>
       Love(msg).map(self.forward(_))

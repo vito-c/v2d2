@@ -6,7 +6,7 @@ v2d2 {
     btoken = "***"
     ptoken = "***"
   }
-  challonge = "***"
+  challenge = "***"
   love = { 
     url = "****"
   }
@@ -44,7 +44,7 @@ who is @person
 love @person for being awesome
 card name <name of card>
 /love @person for being awesome
-/admire slack migration @person for being awesome
+/admire slack migration @person for being awesome (not currently implemented)
  - /guess @person
 /rallywho TBD
 
