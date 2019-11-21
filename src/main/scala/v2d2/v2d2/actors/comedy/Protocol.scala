@@ -111,9 +111,7 @@ object Whois extends BotCombinators {
   ): Option[Whois] = {
     parse(str, com(_)) match {
       case Parsed.Success(value, _) => Some(Whois(msg, Some(str)))
-      case _                        =>
-        // println(com.parse(str))
-        None
+      case _ => None
     }
   }
 }

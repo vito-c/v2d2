@@ -95,6 +95,7 @@ class LoveAct extends Actor with ActorLogging with LoveJsonProtocol {
       for {
         userslist <- V2D2.users
       } yield {
+        log.info(s"users list: ${userslist.size}")
         val nmap = userslist.map(u => u.id -> u).toMap
         val emap = userslist.map { u =>
           val email = u.profile match {
@@ -107,7 +108,7 @@ class LoveAct extends Actor with ActorLogging with LoveJsonProtocol {
         nmap.get(love.msg.user) match {
           case Some(user) =>
             val sender = user
-            log.info("sending love!!")
+            log.info(s"sending love to: ${love.targets}")
             val users = love.targets.flatMap { target =>
               nmap.get(target.trim) match {
                 case Some(user) if user.id == V2D2.selfId =>
@@ -131,10 +132,12 @@ class LoveAct extends Actor with ActorLogging with LoveJsonProtocol {
                   log.info(s"get target ${user}")
                   List(user)
                 case _ =>
+                  log.info(s"can't find any users in the list")
                   context.parent ! EphemResponse(msg, s"Nice try silly human.")
                   Nil
               }
             }
+            log.info(s"users: ${users}")
             if (users.length > 0)
               self.forward(SendUsersLove(sender, users, love.reason, msg, love.volume))
           case _ =>

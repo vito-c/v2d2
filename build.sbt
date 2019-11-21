@@ -1,4 +1,6 @@
 import Dependencies._
+name    := "v2d2"
+version := "1.0.6"
 
 ThisBuild / scalaVersion := "2.12.8"
 ThisBuild / version := "0.1.0"
@@ -24,7 +26,7 @@ lazy val v2d2 = (project in file("."))
     name := "v2d2",
     // libraryDependencies += scalaTest % Test
     libraryDependencies ++= Seq(
-      "com.github.slack-scala-client" %% "slack-scala-client"   % "0.2.6",
+      // "com.github.slack-scala-client" %% "slack-scala-client"   % "0.2.6",
       "joda-time"                     % "joda-time"             % "2.10.4",
       "org.mockito"                   % "mockito-core"          % "2.16.0" % "test",
       "com.softwaremill.macwire"      %% "macros"               % macWireV % "provided",
@@ -47,8 +49,11 @@ lazy val v2d2 = (project in file("."))
       "org.joda"                      % "joda-convert"          % "1.8.1" // https://stackoverflow.com/a/13856382/118587
     )
   )
-
 enablePlugins(DockerPlugin)
+// packageName in Docker := "bots/v2d2"
+// version in Docker := version.value
+// dockerRepository in Docker := "docker.werally.in"
+
 dockerfile in docker := {
   val jarFile: File = sbt.Keys.`package`.in(Compile, packageBin).value
   val classpath     = (managedClasspath in Compile).value
@@ -61,7 +66,8 @@ dockerfile in docker := {
     .mkString(":") + ":" + jarTarget
   new Dockerfile {
     // Base image
-    from("java")
+    from("openjdk:8-jre-stretch")
+    expose(8082)
     // Add all files on the classpath
     add(classpath.files, "/app/")
     // Add the JAR file
@@ -70,6 +76,12 @@ dockerfile in docker := {
     entryPoint("java", "-cp", classpathString, mainclass)
   }
 }
+// Set names for the image
+imageNames in docker := Seq(
+  ImageName(namespace = Some("docker.werally.in"),
+    repository = "bots/v2d2",
+    tag = Some(version.value))
+)
 
 // Uncomment the following for publishing to Sonatype.
 // See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for more detail.

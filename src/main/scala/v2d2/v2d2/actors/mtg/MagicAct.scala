@@ -28,6 +28,37 @@ class MagicAct extends Actor with ActorLogging with CardSetProtocol {
   val stream: InputStream = getClass.getResourceAsStream("/allsets.json")
   val json                = scala.io.Source.fromInputStream(stream).mkString
 
+  case class Score(
+    rawLeven: Int, // score across who string match
+    wordMatches: Int, // name: black sun zenith, search: blue sun, value: 1
+  )
+
+  def scores2(
+    str: String,
+    search: String
+  ): List[Int] = {
+    val symbols = """!<'_-&^'%$#"@=>,""".flatMap(s => s + "|")
+    val p       = s"(\\.|\\*|${symbols})"
+    str
+      .replaceAll(p, "")
+      .toLowerCase()
+      .split(" ") //["some","card", "name"]
+      .map { w =>
+        search
+          .replaceAll(p, "")
+          .split(" ") // ["a", "search", "card"]
+          .map { s =>
+            StringUtils.getLevenshteinDistance(w, s)
+          } // [4, 5, 4], [4, 5, 0] ...
+          .sorted 
+          .head // 4, 0,  ...
+      }
+      .toList
+      .sorted // [0, 4, 4]
+  }
+
+
+
   def scores(
     str: String,
     search: String
@@ -121,7 +152,7 @@ class MagicAct extends Actor with ActorLogging with CardSetProtocol {
                      ((tlen == 5 || tlen == 6) && score > 2) || pcent < 0.7) {
             context.parent ! Response(
               cs.msg,
-              f""":shrug: your best match was 
+              f""":shrug: your best match was
                  |${results.head.name} with ${pcent * 100}%1.2f$p
                  |and score ${jcent * 100}%1.2f$p""".stripMargin.replaceAll("\n", " ")
             )

@@ -134,9 +134,9 @@ class EmoActor(
             // )
           }
         case _ =>
-          pprint.log("hey")
+          None
       }
-    case x =>
-      pprint.log(x)
+    case _ =>
+      None
   }
 }

@@ -94,7 +94,6 @@ class MuxActor(
       if (sr.msg.text == "") {
         None
       } else {
-        pprint.log(sr.msg)
         context.children.foreach { child =>
           child ! sr
         }
@@ -108,6 +107,6 @@ class MuxActor(
           child ! msg
         }
 
-    case x => pprint.log(x)
+    case x => None
   }
 }

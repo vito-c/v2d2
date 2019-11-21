@@ -149,8 +149,6 @@ class Knocker extends Actor with ActorLogging {
       }
 
     case msg: Message =>
-      pprint.log(msg)
-      val k = KnockKnock(msg)
       Knockit(msg).map(self.forward(_))
       KnockKnock(msg).map { k =>
         self.forward(k)
