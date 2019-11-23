@@ -142,7 +142,7 @@ class WhoLoveAct extends Actor with ActorLogging with LoveListJPTL with LoveResu
             if (data.received.length == 0) {
               context.parent ! EphemResponse(
                 love.msg,
-                s"@${love.senderNick} oh boy this is awkward... you don't have any love yet"
+                s"<@${love.senderNick}> oh boy this is awkward... you don't have any love yet"
               )
             } else {
               for {

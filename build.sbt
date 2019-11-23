@@ -1,6 +1,6 @@
 import Dependencies._
 name    := "v2d2"
-version := "1.0.6"
+version := "1.0.8"
 
 ThisBuild / scalaVersion := "2.12.8"
 ThisBuild / version := "0.1.0"
